@@ -1,0 +1,112 @@
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ThemeProvider } from "next-themes";
+import { lazy, Suspense } from "react";
+
+// Eager load critical pages
+import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Install from "./pages/Install";
+import Dashboard from "./pages/Dashboard";
+import Setup from "./pages/Setup";
+
+// Lazy load other pages for better performance
+const Demo = lazy(() => import("./pages/Demo"));
+const DemoView = lazy(() => import("./pages/DemoView"));
+const QRCodePage = lazy(() => import("./pages/QRCode"));
+const LeitorQRCode = lazy(() => import("./pages/LeitorQRCode"));
+const Escalas = lazy(() => import("./pages/Escalas"));
+const Registro = lazy(() => import("./pages/Registro"));
+const Calendario = lazy(() => import("./pages/Calendario"));
+const Historico = lazy(() => import("./pages/Historico"));
+const Configuracoes = lazy(() => import("./pages/Configuracoes"));
+const Justificativas = lazy(() => import("./pages/Justificativas"));
+const Funcionarios = lazy(() => import("./pages/Funcionarios"));
+const Relatorios = lazy(() => import("./pages/Relatorios"));
+const Aprovacoes = lazy(() => import("./pages/Aprovacoes"));
+const Unidades = lazy(() => import("./pages/Unidades"));
+const Usuarios = lazy(() => import("./pages/Usuarios"));
+const Dispositivos = lazy(() => import("./pages/Dispositivos"));
+const Seguranca = lazy(() => import("./pages/Seguranca"));
+const Suporte = lazy(() => import("./pages/Suporte"));
+const SuporteAdmin = lazy(() => import("./pages/SuporteAdmin"));
+const SeedData = lazy(() => import("./pages/SeedData"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
+
+const App = () => (
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/install" element={<Install />} />
+                <Route path="/setup" element={<Setup />} />
+                <Route path="/demo" element={<Demo />} />
+                <Route path="/demo/:role" element={<DemoView />} />
+                
+                {/* Common routes */}
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/qrcode" element={<ProtectedRoute allowedRoles={['professor']}><QRCodePage /></ProtectedRoute>} />
+                <Route path="/registro" element={<ProtectedRoute><Registro /></ProtectedRoute>} />
+                <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
+                <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+                <Route path="/justificativas" element={<ProtectedRoute><Justificativas /></ProtectedRoute>} />
+                
+                {/* Director, Coordinator, Secretary routes */}
+                <Route path="/leitor" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'secretario', 'administrador', 'desenvolvedor']}><LeitorQRCode /></ProtectedRoute>} />
+                <Route path="/escalas" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'administrador', 'desenvolvedor']}><Escalas /></ProtectedRoute>} />
+                <Route path="/calendario" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Calendario /></ProtectedRoute>} />
+                <Route path="/funcionarios" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'administrador', 'desenvolvedor']}><Funcionarios /></ProtectedRoute>} />
+                <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'secretario', 'administrador', 'desenvolvedor']}><Relatorios /></ProtectedRoute>} />
+                <Route path="/aprovacoes" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Aprovacoes /></ProtectedRoute>} />
+                <Route path="/unidades" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Unidades /></ProtectedRoute>} />
+                
+                {/* Admin, Developer and Director routes */}
+                <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor', 'diretor']}><Usuarios /></ProtectedRoute>} />
+                <Route path="/dispositivos" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Dispositivos /></ProtectedRoute>} />
+                <Route path="/seguranca" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Seguranca /></ProtectedRoute>} />
+                
+                {/* Support routes */}
+                <Route path="/suporte" element={<ProtectedRoute allowedRoles={['professor', 'diretor', 'coordenador', 'secretario', 'administrador', 'outro']}><Suporte /></ProtectedRoute>} />
+                <Route path="/suporte-admin" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><SuporteAdmin /></ProtectedRoute>} />
+                <Route path="/seed-data" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><SeedData /></ProtectedRoute>} />
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
+);
+
+export default App;
