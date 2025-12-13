@@ -5,6 +5,7 @@ import { Navigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -49,8 +50,13 @@ const MainLayout = memo(function MainLayout({ children }: MainLayoutProps) {
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
           <span className="font-display font-bold text-foreground">FrequênciaQR</span>
-          <div className="w-10" />
+          <NotificationCenter />
         </div>
+      </header>
+
+      {/* Desktop Header with Notifications */}
+      <header className="hidden lg:flex fixed top-0 left-64 right-0 z-40 h-14 bg-background/95 backdrop-blur-sm border-b border-border items-center justify-end px-6">
+        <NotificationCenter />
       </header>
 
       {/* Mobile Overlay */}
@@ -70,7 +76,7 @@ const MainLayout = memo(function MainLayout({ children }: MainLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen pt-14 lg:pt-0">
+      <main className="lg:ml-64 min-h-screen pt-14">
         <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
