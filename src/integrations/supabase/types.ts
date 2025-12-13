@@ -61,6 +61,50 @@ export type Database = {
           },
         ]
       }
+      email_notifications: {
+        Row: {
+          assunto: string
+          conteudo: string | null
+          created_at: string
+          erro_mensagem: string | null
+          id: string
+          sent_at: string | null
+          status: string
+          tipo: string
+          user_id: string | null
+        }
+        Insert: {
+          assunto: string
+          conteudo?: string | null
+          created_at?: string
+          erro_mensagem?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string
+          tipo: string
+          user_id?: string | null
+        }
+        Update: {
+          assunto?: string
+          conteudo?: string | null
+          created_at?: string
+          erro_mensagem?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string
+          tipo?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       escalas_trabalho: {
         Row: {
           created_at: string
@@ -281,6 +325,63 @@ export type Database = {
           },
           {
             foreignKeyName: "registros_frequencia_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string
+          descricao: string | null
+          id: string
+          is_global: boolean
+          tipo: string
+          titulo: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio: string
+          descricao?: string | null
+          id?: string
+          is_global?: boolean
+          tipo?: string
+          titulo: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          is_global?: boolean
+          tipo?: string
+          titulo?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_events_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"

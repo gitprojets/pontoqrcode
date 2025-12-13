@@ -9,8 +9,9 @@ import {
   TrendingUp,
   Clock,
   Loader2,
+  FileSpreadsheet,
 } from 'lucide-react';
-import { exportToPDF } from '@/lib/exportUtils';
+import { exportToPDF, exportToCSV } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 import {
   Popover,
@@ -18,29 +19,44 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUnidades } from '@/hooks/useUnidades';
+import { useMonthlyReport } from '@/hooks/useMonthlyReport';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Relatorio {
   id: string;
   titulo: string;
   descricao: string;
-  tipo: 'presenca' | 'atraso' | 'justificativa' | 'geral';
+  tipo: 'presenca' | 'atraso' | 'justificativa' | 'geral' | 'mensal';
 }
 
 const relatoriosDisponiveis: Relatorio[] = [
   {
+    id: 'mensal',
+    titulo: 'Relatório Mensal Completo',
+    descricao: 'Resumo consolidado de frequência por funcionário',
+    tipo: 'mensal',
+  },
+  {
     id: '1',
     titulo: 'Relatório de Presenças',
-    descricao: 'Relatório completo de presenças por período',
+    descricao: 'Relatório detalhado de presenças por período',
     tipo: 'presenca',
   },
   {
     id: '2',
     titulo: 'Relatório de Atrasos',
-    descricao: 'Análise de atrasos por funcionário e turno',
+    descricao: 'Análise de atrasos por funcionário',
     tipo: 'atraso',
   },
   {
@@ -62,13 +78,15 @@ const tipoIcons = {
   atraso: Clock,
   justificativa: FileText,
   geral: TrendingUp,
+  mensal: FileSpreadsheet,
 };
 
 const tipoColors = {
   presenca: 'bg-success/10 text-success',
   atraso: 'bg-warning/10 text-warning',
   justificativa: 'bg-primary/10 text-primary',
-  geral: 'bg-secondary/10 text-secondary',
+  geral: 'bg-secondary/10 text-secondary-foreground',
+  mensal: 'bg-accent text-accent-foreground',
 };
 
 interface Stats {
@@ -80,6 +98,9 @@ interface Stats {
 
 export default function Relatorios() {
   const { profile, role } = useAuth();
+  const { unidades } = useUnidades();
+  const { isGenerating, generateMonthlyReport } = useMonthlyReport();
+  
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [stats, setStats] = useState<Stats>({
@@ -92,11 +113,17 @@ export default function Relatorios() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
+  const [selectedUnidade, setSelectedUnidade] = useState<string>('all');
+
+  const canSelectUnidade = role === 'administrador' || role === 'desenvolvedor';
 
   const fetchStats = useCallback(async () => {
     try {
       setIsLoadingStats(true);
-      const unidadeId = profile?.unidade_id;
+      const unidadeId = canSelectUnidade && selectedUnidade !== 'all' 
+        ? selectedUnidade 
+        : profile?.unidade_id;
       const dataInicio = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : format(startOfMonth(new Date()), 'yyyy-MM-dd');
       const dataFim = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
@@ -108,6 +135,8 @@ export default function Relatorios() {
 
       if (unidadeId && role === 'diretor') {
         query = query.eq('unidade_id', unidadeId);
+      } else if (canSelectUnidade && selectedUnidade !== 'all') {
+        query = query.eq('unidade_id', selectedUnidade);
       }
 
       const { data: registros } = await query;
@@ -133,17 +162,35 @@ export default function Relatorios() {
     } finally {
       setIsLoadingStats(false);
     }
-  }, [profile, role, dateRange]);
+  }, [profile, role, dateRange, selectedUnidade, canSelectUnidade]);
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
-  const handleExport = async (relatorio: Relatorio) => {
+  const handleMonthlyExport = async () => {
+    const unidadeId = canSelectUnidade && selectedUnidade !== 'all' 
+      ? selectedUnidade 
+      : profile?.unidade_id;
+    const unidadeNome = canSelectUnidade && selectedUnidade !== 'all'
+      ? unidades.find(u => u.id === selectedUnidade)?.nome
+      : undefined;
+    
+    await generateMonthlyReport(selectedMonth, unidadeId, unidadeNome);
+  };
+
+  const handleExport = async (relatorio: Relatorio, format_type: 'pdf' | 'csv' = 'pdf') => {
+    if (relatorio.tipo === 'mensal') {
+      await handleMonthlyExport();
+      return;
+    }
+
     setExportingId(relatorio.id);
     
     try {
-      const unidadeId = profile?.unidade_id;
+      const unidadeId = canSelectUnidade && selectedUnidade !== 'all' 
+        ? selectedUnidade 
+        : profile?.unidade_id;
       const dataInicio = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : format(startOfMonth(new Date()), 'yyyy-MM-dd');
       const dataFim = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
@@ -167,6 +214,8 @@ export default function Relatorios() {
 
         if (unidadeId && role === 'diretor') {
           query = query.eq('unidade_id', unidadeId);
+        } else if (canSelectUnidade && selectedUnidade !== 'all') {
+          query = query.eq('unidade_id', selectedUnidade);
         }
 
         if (relatorio.tipo === 'atraso') {
@@ -221,6 +270,8 @@ export default function Relatorios() {
 
         if (unidadeId && role === 'diretor') {
           query = query.eq('unidade_id', unidadeId);
+        } else if (canSelectUnidade && selectedUnidade !== 'all') {
+          query = query.eq('unidade_id', selectedUnidade);
         }
 
         const { data: justificativas } = await query;
@@ -242,14 +293,22 @@ export default function Relatorios() {
         ? `Período: ${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`
         : undefined;
 
-      exportToPDF({
-        title: relatorio.titulo,
-        subtitle: dateSubtitle,
-        columns,
-        data,
-        filename: `${relatorio.tipo}_${new Date().toISOString().split('T')[0]}`,
-        orientation: relatorio.tipo === 'presenca' || relatorio.tipo === 'atraso' ? 'landscape' : 'portrait',
-      });
+      if (format_type === 'csv') {
+        exportToCSV({
+          columns,
+          data,
+          filename: `${relatorio.tipo}_${new Date().toISOString().split('T')[0]}`,
+        });
+      } else {
+        exportToPDF({
+          title: relatorio.titulo,
+          subtitle: dateSubtitle,
+          columns,
+          data,
+          filename: `${relatorio.tipo}_${new Date().toISOString().split('T')[0]}`,
+          orientation: relatorio.tipo === 'presenca' || relatorio.tipo === 'atraso' ? 'landscape' : 'portrait',
+        });
+      }
 
       toast.success(`${relatorio.titulo} exportado com sucesso!`);
     } catch (error) {
@@ -263,7 +322,7 @@ export default function Relatorios() {
   return (
     <MainLayout>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">
               Relatórios
@@ -272,6 +331,20 @@ export default function Relatorios() {
               Gere e exporte relatórios do sistema
             </p>
           </div>
+          
+          {canSelectUnidade && (
+            <Select value={selectedUnidade} onValueChange={setSelectedUnidade}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Selecione a unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Unidades</SelectItem>
+                {unidades.map(u => (
+                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Quick Stats */}
@@ -323,7 +396,7 @@ export default function Relatorios() {
           </div>
           <div className="card-elevated p-4 flex items-center gap-3">
             <div className="p-2 bg-secondary/10 rounded-lg">
-              <Calendar className="w-5 h-5 text-secondary" />
+              <Calendar className="w-5 h-5 text-secondary-foreground" />
             </div>
             <div>
               {isLoadingStats ? (
@@ -343,6 +416,7 @@ export default function Relatorios() {
           {relatoriosDisponiveis.map((relatorio) => {
             const Icon = tipoIcons[relatorio.tipo];
             const colorClass = tipoColors[relatorio.tipo];
+            const isMonthly = relatorio.tipo === 'mensal';
             
             return (
               <div
@@ -364,39 +438,81 @@ export default function Relatorios() {
                 </div>
                 
                 <div className="flex gap-3 mt-6">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="flex-1 gap-2">
-                        <Calendar className="w-4 h-4" />
-                        {dateRange.from && dateRange.to 
-                          ? `${format(dateRange.from, 'dd/MM', { locale: ptBR })} - ${format(dateRange.to, 'dd/MM', { locale: ptBR })}`
-                          : 'Período'
-                        }
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="range"
-                        selected={{ from: dateRange.from, to: dateRange.to }}
-                        onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-                        locale={ptBR}
-                        numberOfMonths={2}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  {isMonthly ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="flex-1 gap-2">
+                          <Calendar className="w-4 h-4" />
+                          {format(selectedMonth, 'MMMM yyyy', { locale: ptBR })}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <div className="p-3 space-y-2">
+                          <p className="text-sm font-medium">Selecione o mês</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[0, 1, 2, 3, 4, 5].map(i => {
+                              const month = subMonths(new Date(), i);
+                              return (
+                                <Button
+                                  key={i}
+                                  variant={format(month, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM') ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => setSelectedMonth(month)}
+                                >
+                                  {format(month, 'MMM', { locale: ptBR })}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="flex-1 gap-2">
+                          <Calendar className="w-4 h-4" />
+                          {dateRange.from && dateRange.to 
+                            ? `${format(dateRange.from, 'dd/MM', { locale: ptBR })} - ${format(dateRange.to, 'dd/MM', { locale: ptBR })}`
+                            : 'Período'
+                          }
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="range"
+                          selected={{ from: dateRange.from, to: dateRange.to }}
+                          onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+                          locale={ptBR}
+                          numberOfMonths={2}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
                   <Button 
                     variant="gradient" 
                     className="flex-1 gap-2"
                     onClick={() => handleExport(relatorio)}
-                    disabled={exportingId === relatorio.id}
+                    disabled={exportingId === relatorio.id || (isMonthly && isGenerating)}
                   >
-                    {exportingId === relatorio.id ? (
+                    {exportingId === relatorio.id || (isMonthly && isGenerating) ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Download className="w-4 h-4" />
                     )}
-                    Exportar
+                    PDF
                   </Button>
+                  {!isMonthly && (
+                    <Button 
+                      variant="outline" 
+                      className="gap-2"
+                      onClick={() => handleExport(relatorio, 'csv')}
+                      disabled={exportingId === relatorio.id}
+                    >
+                      <FileSpreadsheet className="w-4 h-4" />
+                      CSV
+                    </Button>
+                  )}
                 </div>
               </div>
             );
