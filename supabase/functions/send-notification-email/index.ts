@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -54,11 +56,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Email do destinatário não encontrado");
     }
 
-    // Generate HTML email based on type
+    // Generate HTML email
     const emailHtml = generateEmailHtml(tipo, nome, assunto, conteudo, dados_extras);
 
     // Log the notification in database
-    const { error: logError } = await supabase
+    const { data: notification, error: logError } = await supabase
       .from('email_notifications')
       .insert({
         user_id: destinatario_id,
@@ -66,60 +68,98 @@ const handler = async (req: Request): Promise<Response> => {
         assunto,
         conteudo,
         status: 'pendente',
-      });
+      })
+      .select()
+      .single();
 
     if (logError) {
       console.error('Error logging notification:', logError);
     }
 
-    // For now, we log the email details (in production, integrate with Resend or similar)
-    console.log('Email notification prepared:', {
-      to: email,
-      subject: assunto,
-      tipo,
-    });
-
-    // Note: To send actual emails, configure RESEND_API_KEY and uncomment:
-    /*
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    const { error: sendError } = await resend.emails.send({
-      from: "FrequênciaQR <noreply@frequenciaqr.com>",
-      to: [email],
-      subject: assunto,
-      html: emailHtml,
-    });
-
-    if (sendError) throw sendError;
-    */
-
-    // Update notification status
-    if (destinatario_id) {
-      await supabase
-        .from('email_notifications')
-        .update({ 
-          status: 'enviado',
-          sent_at: new Date().toISOString()
-        })
-        .eq('user_id', destinatario_id)
-        .eq('assunto', assunto)
-        .eq('status', 'pendente');
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Notificação processada com sucesso",
-        email_prepared: {
-          to: email,
+    // Send email using Resend if API key is configured
+    if (resendApiKey) {
+      const resend = new Resend(resendApiKey);
+      
+      try {
+        const { data: emailResult, error: sendError } = await resend.emails.send({
+          from: "FrequênciaQR <onboarding@resend.dev>",
+          to: [email],
           subject: assunto,
-          type: tipo
+          html: emailHtml,
+        });
+
+        if (sendError) {
+          console.error('Error sending email:', sendError);
+          
+          // Update notification status to error
+          if (notification?.id) {
+            await supabase
+              .from('email_notifications')
+              .update({ 
+                status: 'erro',
+                erro_mensagem: sendError.message
+              })
+              .eq('id', notification.id);
+          }
+
+          throw sendError;
         }
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+
+        console.log('Email sent successfully:', emailResult);
+
+        // Update notification status to sent
+        if (notification?.id) {
+          await supabase
+            .from('email_notifications')
+            .update({ 
+              status: 'enviado',
+              sent_at: new Date().toISOString()
+            })
+            .eq('id', notification.id);
+        }
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: "Email enviado com sucesso",
+            email_id: emailResult?.id
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      } catch (emailError: unknown) {
+        const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown email error';
+        console.error('Failed to send email:', errorMessage);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: "Falha ao enviar email",
+            error: errorMessage
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
       }
-    );
+    } else {
+      console.log('RESEND_API_KEY not configured, email logged but not sent');
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Notificação registrada (email não configurado)",
+          notification_id: notification?.id
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
   } catch (error: unknown) {
     console.error("Error in send-notification-email:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -142,7 +182,7 @@ function generateEmailHtml(
 ): string {
   const headerColor = tipo === 'ausencia' ? '#ef4444' : 
                       tipo === 'atraso' ? '#f59e0b' : 
-                      tipo === 'ticket_resposta' ? '#3b82f6' : '#10b981';
+                      tipo === 'ticket_resposta' ? '#10b981' : '#3b82f6';
 
   return `
 <!DOCTYPE html>
