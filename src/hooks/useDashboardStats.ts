@@ -126,10 +126,10 @@ export function useDashboardStats() {
           supabase.from('unidades').select('*', { count: 'exact', head: true }).eq('status', 'online'),
           supabase.from('profiles').select('*', { count: 'exact', head: true }),
           supabase.from('registros_frequencia').select('*', { count: 'exact', head: true }).eq('data_registro', hoje),
-          supabase.from('dispositivos_safe').select('status'),
+          supabase.rpc('get_dispositivos_safe'),
         ]);
 
-        const dispositivosOnline = dispositivosRes.data?.filter(d => d.status === 'online').length || 0;
+        const dispositivosOnline = (dispositivosRes.data as Array<{ status: string }> | null)?.filter(d => d.status === 'online').length || 0;
 
         if (isMountedRef.current) {
           setStats({

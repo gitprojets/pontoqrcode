@@ -303,13 +303,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "registros_frequencia_dispositivo_id_fkey"
-            columns: ["dispositivo_id"]
-            isOneToOne: false
-            referencedRelation: "dispositivos_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "registros_frequencia_lido_por_fkey"
             columns: ["lido_por"]
             isOneToOne: false
@@ -519,50 +512,7 @@ export type Database = {
       }
     }
     Views: {
-      dispositivos_safe: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          leituras_hoje: number | null
-          local: string | null
-          nome: string | null
-          status: string | null
-          ultima_leitura: string | null
-          unidade_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          leituras_hoje?: number | null
-          local?: string | null
-          nome?: string | null
-          status?: string | null
-          ultima_leitura?: string | null
-          unidade_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          leituras_hoje?: number | null
-          local?: string | null
-          nome?: string | null
-          status?: string | null
-          ultima_leitura?: string | null
-          unidade_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dispositivos_unidade_id_fkey"
-            columns: ["unidade_id"]
-            isOneToOne: false
-            referencedRelation: "unidades"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       admin_create_user: {
@@ -580,6 +530,20 @@ export type Database = {
       get_dispositivo_api_key: {
         Args: { dispositivo_id: string }
         Returns: string
+      }
+      get_dispositivos_safe: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          leituras_hoje: number
+          local: string
+          nome: string
+          status: string
+          ultima_leitura: string
+          unidade_id: string
+          updated_at: string
+        }[]
       }
       get_user_role: {
         Args: { _user_id: string }
