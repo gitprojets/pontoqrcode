@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import logoImage from '@/assets/logo.jpeg';
+import { ThemedLogo } from '@/components/ThemedLogo';
 
 interface MenuItem {
   icon: LucideIcon;
@@ -168,7 +168,7 @@ const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
       <div className="p-4 lg:p-6 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={logoImage} alt="FrequênciaQR" className="w-10 h-10 rounded-xl" />
+            <ThemedLogo className="w-10 h-10 rounded-xl" />
             <div>
               <h1 className="font-display font-bold text-sidebar-foreground text-lg">
                 FrequênciaQR
