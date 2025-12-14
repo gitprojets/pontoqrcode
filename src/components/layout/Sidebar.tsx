@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logo.jpeg';
 
 interface MenuItem {
   icon: LucideIcon;
