@@ -34,16 +34,8 @@ export function QRCodeGenerator() {
     } catch (err) {
       console.error('Error generating QR token:', err);
       setError(err instanceof Error ? err.message : 'Erro ao gerar QR Code');
-      // Fallback to local generation if edge function fails
-      const fallbackPayload = {
-        id: user.id,
-        m: profile?.matricula || '',
-        t: Date.now(),
-        n: Math.random().toString(36).substring(2, 10),
-        e: Date.now() + 60000,
-      };
-      setQrData(btoa(JSON.stringify(fallbackPayload)));
-      setExpiresIn(60);
+      // Do not fall back to insecure local generation - require secure JWT tokens
+      setQrData('');
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +104,7 @@ export function QRCodeGenerator() {
       {error && (
         <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
           <p className="text-xs text-destructive">{error}</p>
-          <p className="text-xs text-muted-foreground mt-1">Usando modo offline</p>
+          <p className="text-xs text-muted-foreground mt-1">Tente novamente ou verifique sua conexão</p>
         </div>
       )}
 
