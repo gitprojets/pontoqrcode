@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -34,7 +34,7 @@ export function useUnidades() {
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUnidades = async () => {
+  const fetchUnidades = useCallback(async () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
@@ -54,7 +54,7 @@ export function useUnidades() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const createUnidade = async (input: UnidadeInput) => {
     try {
@@ -176,7 +176,19 @@ export function useUnidades() {
 
   useEffect(() => {
     fetchUnidades();
-  }, []);
+    
+    // Setup realtime subscription
+    const channel = supabase
+      .channel('unidades-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'unidades' }, () => {
+        fetchUnidades();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchUnidades]);
 
   return {
     unidades,

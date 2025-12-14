@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { SchoolCalendar } from '@/components/calendar/SchoolCalendar';
@@ -142,11 +141,6 @@ function DiretorDashboard() {
 
 function AdminDashboard() {
   const { stats, isLoading, refresh } = useDashboardStats();
-
-  // Refresh data when component mounts to ensure fresh data
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
 
   if (isLoading) {
     return (

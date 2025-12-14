@@ -70,50 +70,57 @@ export function NotificationCenter() {
   useEffect(() => {
     if (!user) return;
 
-    console.log('Setting up realtime subscription for user:', user.id);
+    let isMounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    const channel = supabase
-      .channel('support-tickets-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'support_tickets',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('Ticket updated:', payload);
-          
-          const newData = payload.new as { response?: string; status?: string; subject?: string };
-          const oldData = payload.old as { response?: string; status?: string };
-          
-          // Check if a response was added
-          if (newData.response && !oldData.response) {
-            addNotification({
-              title: 'Resposta do Suporte',
-              message: `Seu chamado "${newData.subject}" recebeu uma resposta!`,
-              type: 'ticket_response',
-            });
+    // Small delay to avoid subscription conflicts during component mount
+    const timeoutId = setTimeout(() => {
+      if (!isMounted) return;
+      
+      channel = supabase
+        .channel(`support-tickets-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'support_tickets',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            if (!isMounted) return;
+            
+            const newData = payload.new as { response?: string; status?: string; subject?: string };
+            const oldData = payload.old as { response?: string; status?: string };
+            
+            // Check if a response was added
+            if (newData.response && !oldData.response) {
+              addNotification({
+                title: 'Resposta do Suporte',
+                message: `Seu chamado "${newData.subject}" recebeu uma resposta!`,
+                type: 'ticket_response',
+              });
+            }
+            
+            // Check if status changed to resolved
+            if (newData.status === 'resolvido' && oldData.status !== 'resolvido') {
+              addNotification({
+                title: 'Chamado Resolvido',
+                message: `Seu chamado "${newData.subject}" foi marcado como resolvido.`,
+                type: 'success',
+              });
+            }
           }
-          
-          // Check if status changed to resolved
-          if (newData.status === 'resolvido' && oldData.status !== 'resolvido') {
-            addNotification({
-              title: 'Chamado Resolvido',
-              message: `Seu chamado "${newData.subject}" foi marcado como resolvido.`,
-              type: 'success',
-            });
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-      });
+        )
+        .subscribe();
+    }, 100);
 
     return () => {
-      console.log('Cleaning up realtime subscription');
-      supabase.removeChannel(channel);
+      isMounted = false;
+      clearTimeout(timeoutId);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [user, addNotification]);
 
