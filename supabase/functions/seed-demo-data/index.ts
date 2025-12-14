@@ -106,19 +106,19 @@ interface SeedResults {
   errors: string[];
 }
 
-// Max limits to prevent timeouts
+// Max limits to prevent timeouts - must match frontend
 const MAX_LIMITS = {
-  unidades: 50,
-  administradores: 20,
-  diretores: 50,
-  coordenadores: 30,
-  secretarios: 30,
-  professores: 100,
-  vigias: 30,
-  zeladoras: 30,
-  merendeiras: 30,
-  assistentes: 30,
-  digitadores: 30,
+  unidades: 500,
+  administradores: 1000,
+  diretores: 1000,
+  coordenadores: 500,
+  secretarios: 500,
+  professores: 5000,
+  vigias: 200,
+  zeladoras: 200,
+  merendeiras: 200,
+  assistentes: 200,
+  digitadores: 200,
 };
 
 // Role mapping - these roles use 'outro' as base role
@@ -335,6 +335,9 @@ serve(async (req) => {
             await supabaseAdmin.from('dispositivos').delete().eq('unidade_id', unit.id);
             await supabaseAdmin.from('school_events').delete().eq('unidade_id', unit.id);
             await supabaseAdmin.from('justificativas').delete().eq('unidade_id', unit.id);
+            
+            // Remove unidade_id from profiles linked to this unit
+            await supabaseAdmin.from('profiles').update({ unidade_id: null }).eq('unidade_id', unit.id);
             
             // Then delete the unit
             const { error: deleteUnitError } = await supabaseAdmin
