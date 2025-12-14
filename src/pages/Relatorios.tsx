@@ -25,6 +25,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidades } from '@/hooks/useUnidades';
 import { useMonthlyReport } from '@/hooks/useMonthlyReport';
+import { useAdminUnidades } from '@/hooks/useAdminUnidades';
 import {
   Select,
   SelectContent,
@@ -100,6 +101,7 @@ export default function Relatorios() {
   const { profile, role } = useAuth();
   const { unidades } = useUnidades();
   const { isGenerating, generateMonthlyReport } = useMonthlyReport();
+  const { adminUnidades } = useAdminUnidades();
   
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
@@ -116,16 +118,42 @@ export default function Relatorios() {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [selectedUnidade, setSelectedUnidade] = useState<string>('all');
 
-  // Diretores, Coordenadores e Secretários só podem ver relatórios da sua unidade
-  const canSelectUnidade = role === 'desenvolvedor';
-  const isUnitRestricted = role === 'diretor' || role === 'coordenador' || role === 'secretario' || role === 'administrador';
+  // Desenvolvedor pode selecionar qualquer unidade
+  // Administrador pode selecionar entre suas unidades vinculadas
+  // Diretor, Coordenador e Secretário só veem sua própria unidade
+  const canSelectUnidade = role === 'desenvolvedor' || (role === 'administrador' && adminUnidades.length > 1);
+  const isUnitRestricted = role === 'diretor' || role === 'coordenador' || role === 'secretario';
+
+  // Get the list of units to show in selector
+  const availableUnidades = role === 'administrador' 
+    ? unidades.filter(u => adminUnidades.includes(u.id))
+    : unidades;
 
   const fetchStats = useCallback(async () => {
     try {
       setIsLoadingStats(true);
-      const unidadeId = canSelectUnidade && selectedUnidade !== 'all' 
-        ? selectedUnidade 
-        : profile?.unidade_id;
+      
+      // Determinar unidade_id com base na role
+      let targetUnidadeId: string | null = null;
+      let targetUnidadeIds: string[] = [];
+      
+      if (isUnitRestricted) {
+        // Diretor, Coordenador e Secretário: usar sua própria unidade
+        targetUnidadeId = profile?.unidade_id || null;
+      } else if (role === 'administrador') {
+        // Administrador: usar unidades vinculadas
+        if (selectedUnidade !== 'all') {
+          targetUnidadeId = selectedUnidade;
+        } else {
+          targetUnidadeIds = adminUnidades;
+        }
+      } else if (role === 'desenvolvedor') {
+        // Desenvolvedor: pode selecionar qualquer unidade
+        if (selectedUnidade !== 'all') {
+          targetUnidadeId = selectedUnidade;
+        }
+      }
+      
       const dataInicio = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : format(startOfMonth(new Date()), 'yyyy-MM-dd');
       const dataFim = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
@@ -135,10 +163,11 @@ export default function Relatorios() {
         .gte('data_registro', dataInicio)
         .lte('data_registro', dataFim);
 
-      if (unidadeId && role === 'diretor') {
-        query = query.eq('unidade_id', unidadeId);
-      } else if (canSelectUnidade && selectedUnidade !== 'all') {
-        query = query.eq('unidade_id', selectedUnidade);
+      // Aplicar filtro por unidade
+      if (targetUnidadeId) {
+        query = query.eq('unidade_id', targetUnidadeId);
+      } else if (targetUnidadeIds.length > 0) {
+        query = query.in('unidade_id', targetUnidadeIds);
       }
 
       const { data: registros } = await query;
@@ -341,7 +370,7 @@ export default function Relatorios() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as Unidades</SelectItem>
-                {unidades.map(u => (
+                {availableUnidades.map(u => (
                   <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                 ))}
               </SelectContent>

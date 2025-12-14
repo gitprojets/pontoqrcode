@@ -22,6 +22,7 @@ const QRCodePage = lazy(() => import("./pages/QRCode"));
 const LeitorQRCode = lazy(() => import("./pages/LeitorQRCode"));
 const Escalas = lazy(() => import("./pages/Escalas"));
 const Registro = lazy(() => import("./pages/Registro"));
+const RegistrosDia = lazy(() => import("./pages/RegistrosDia"));
 const Calendario = lazy(() => import("./pages/Calendario"));
 const Historico = lazy(() => import("./pages/Historico"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
@@ -82,6 +83,9 @@ const App = () => (
                 
                 {/* Director routes - only director can read QR codes */}
                 <Route path="/leitor" element={<ProtectedRoute allowedRoles={['diretor', 'desenvolvedor']}><LeitorQRCode /></ProtectedRoute>} />
+                
+                {/* Registros do dia - admin can view daily records */}
+                <Route path="/registros-dia" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><RegistrosDia /></ProtectedRoute>} />
                 
                 {/* Escalas - only admin and developer */}
                 <Route path="/escalas" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Escalas /></ProtectedRoute>} />

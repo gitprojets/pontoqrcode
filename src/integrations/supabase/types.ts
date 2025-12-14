@@ -208,6 +208,79 @@ export type Database = {
           },
         ]
       }
+      justificativas: {
+        Row: {
+          anexo_nome: string | null
+          anexo_path: string | null
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          id: string
+          professor_id: string
+          status: string
+          tipo: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          anexo_nome?: string | null
+          anexo_path?: string | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          descricao?: string | null
+          id?: string
+          professor_id: string
+          status?: string
+          tipo?: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          anexo_nome?: string | null
+          anexo_path?: string | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          professor_id?: string
+          status?: string
+          tipo?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "justificativas_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "justificativas_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "justificativas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
