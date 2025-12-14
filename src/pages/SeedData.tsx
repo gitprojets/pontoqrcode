@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,8 +22,10 @@ import {
   Brush,
   UserCog,
   Keyboard,
+  Clock,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +66,13 @@ interface SeedConfig {
   digitadores: number;
 }
 
+interface ProgressState {
+  currentStep: string;
+  progress: number;
+  elapsedTime: number;
+  estimatedTotal: number;
+}
+
 export default function SeedData() {
   const { role } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +82,14 @@ export default function SeedData() {
   const [result, setResult] = useState<SeedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [clearExisting, setClearExisting] = useState(true);
+  const [progressState, setProgressState] = useState<ProgressState>({
+    currentStep: '',
+    progress: 0,
+    elapsedTime: 0,
+    estimatedTotal: 0,
+  });
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
   
   // Limites máximos configurados
   const MAX_LIMITS = {
@@ -114,6 +131,93 @@ export default function SeedData() {
     config.merendeiras + 
     config.assistentes + 
     config.digitadores;
+
+  const totalRecords = config.unidades + totalUsuarios;
+  
+  // Estima ~0.5 segundos por registro + overhead para limpeza
+  const estimatedSeconds = Math.max(5, Math.ceil(totalRecords * 0.5) + (clearExisting ? 10 : 0));
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
+
+  // Etapas do processo com pesos aproximados
+  const steps = [
+    { name: 'Limpando dados...', weight: clearExisting ? 15 : 0 },
+    { name: 'Criando unidades...', weight: config.unidades > 0 ? 10 : 0 },
+    { name: 'Criando administradores...', weight: config.administradores > 0 ? 8 : 0 },
+    { name: 'Criando diretores...', weight: config.diretores > 0 ? 10 : 0 },
+    { name: 'Criando coordenadores...', weight: config.coordenadores > 0 ? 8 : 0 },
+    { name: 'Criando secretários...', weight: config.secretarios > 0 ? 8 : 0 },
+    { name: 'Criando professores...', weight: config.professores > 0 ? 20 : 0 },
+    { name: 'Criando vigias...', weight: config.vigias > 0 ? 5 : 0 },
+    { name: 'Criando zeladoras...', weight: config.zeladoras > 0 ? 5 : 0 },
+    { name: 'Criando merendeiras...', weight: config.merendeiras > 0 ? 5 : 0 },
+    { name: 'Criando assistentes...', weight: config.assistentes > 0 ? 5 : 0 },
+    { name: 'Criando digitadores...', weight: config.digitadores > 0 ? 5 : 0 },
+    { name: 'Finalizando...', weight: 5 },
+  ].filter(s => s.weight > 0);
+
+  const startProgress = () => {
+    startTimeRef.current = Date.now();
+    const totalWeight = steps.reduce((sum, s) => sum + s.weight, 0);
+    let currentStepIndex = 0;
+    let accumulatedWeight = 0;
+
+    setProgressState({
+      currentStep: steps[0]?.name || 'Processando...',
+      progress: 0,
+      elapsedTime: 0,
+      estimatedTotal: estimatedSeconds,
+    });
+
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      const expectedProgress = Math.min(95, (elapsed / estimatedSeconds) * 100);
+      
+      // Determina etapa atual baseado no progresso
+      let tempWeight = 0;
+      for (let i = 0; i < steps.length; i++) {
+        tempWeight += (steps[i].weight / totalWeight) * 100;
+        if (expectedProgress <= tempWeight) {
+          currentStepIndex = i;
+          break;
+        }
+      }
+
+      setProgressState({
+        currentStep: steps[currentStepIndex]?.name || 'Finalizando...',
+        progress: expectedProgress,
+        elapsedTime: elapsed,
+        estimatedTotal: estimatedSeconds,
+      });
+    }, 250);
+  };
+
+  const stopProgress = (success: boolean) => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    if (success) {
+      setProgressState(prev => ({
+        ...prev,
+        currentStep: 'Concluído!',
+        progress: 100,
+      }));
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleConfigChange = (field: keyof SeedConfig, value: string) => {
     const numValue = parseInt(value) || 0;
@@ -178,13 +282,9 @@ export default function SeedData() {
     setIsLoading(true);
     setResult(null);
     setError(null);
+    startProgress();
 
     try {
-      toast.info(clearExisting ? 'Limpando dados existentes e criando novos...' : 'Iniciando criação de dados de teste...', {
-        description: 'Isso pode levar alguns minutos.',
-        duration: 10000,
-      });
-
       const { data, error: fnError } = await supabase.functions.invoke('seed-demo-data', {
         body: { ...config, clearExisting }
       });
@@ -198,12 +298,14 @@ export default function SeedData() {
       }
 
       if (data?.success) {
+        stopProgress(true);
         setResult(data.created);
         toast.success('Dados criados com sucesso!', {
           description: `${data.created.total} registros criados.`,
         });
       }
     } catch (err) {
+      stopProgress(false);
       const message = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(message);
       toast.error('Erro ao criar dados', { description: message });
@@ -439,9 +541,43 @@ export default function SeedData() {
             </div>
           )}
 
+          {/* Barra de Progresso */}
+          {isLoading && (
+            <div className="p-6 bg-primary/5 border border-primary/20 rounded-lg mb-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">{progressState.currentStep}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Processando {totalRecords} registros...
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-primary">
+                    {Math.round(progressState.progress)}%
+                  </p>
+                </div>
+              </div>
+              
+              <Progress value={progressState.progress} className="h-3" />
+              
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span>Tempo decorrido: {formatTime(progressState.elapsedTime)}</span>
+                </div>
+                <span>
+                  Estimativa: ~{formatTime(Math.max(0, progressState.estimatedTotal - progressState.elapsedTime))} restantes
+                </span>
+              </div>
+            </div>
+          )}
+
           <Button
             onClick={() => setIsConfirmOpen(true)}
-            disabled={isLoading || (config.unidades === 0 && totalUsuarios === 0)}
+            disabled={isLoading || isClearingAll || (config.unidades === 0 && totalUsuarios === 0)}
             variant="gradient"
             size="lg"
             className="w-full gap-2"
@@ -449,15 +585,23 @@ export default function SeedData() {
             {isLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Criando dados... isso pode levar alguns minutos
+                Gerando dados... {Math.round(progressState.progress)}%
               </>
             ) : (
               <>
                 <Database className="w-5 h-5" />
-                Gerar {config.unidades + totalUsuarios} Registros
+                Gerar {totalRecords} Registros
               </>
             )}
           </Button>
+
+          {/* Tempo estimado */}
+          {!isLoading && totalRecords > 0 && (
+            <p className="text-sm text-muted-foreground text-center mt-3">
+              <Clock className="w-4 h-4 inline mr-1" />
+              Tempo estimado: ~{formatTime(estimatedSeconds)}
+            </p>
+          )}
         </div>
       </div>
 
