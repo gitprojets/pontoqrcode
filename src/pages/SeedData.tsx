@@ -46,10 +46,12 @@ interface SeedConfig {
 export default function SeedData() {
   const { role } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = useState(false);
   const [result, setResult] = useState<SeedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [clearExisting, setClearExisting] = useState(false);
+  const [clearExisting, setClearExisting] = useState(true);
   
   // Limites para evitar timeout da edge function
   const MAX_LIMITS = {
@@ -77,6 +79,49 @@ export default function SeedData() {
     }));
   };
 
+  const handleClearAllData = async () => {
+    setIsClearAllConfirmOpen(false);
+    setIsClearingAll(true);
+    setResult(null);
+    setError(null);
+
+    try {
+      toast.info('Limpando todos os dados de teste...', {
+        description: 'Aguarde enquanto os dados são removidos.',
+        duration: 5000,
+      });
+
+      // Call the edge function with clearExisting=true and zero counts
+      const { data, error: fnError } = await supabase.functions.invoke('seed-demo-data', {
+        body: { 
+          unidades: 0,
+          administradores: 0,
+          diretores: 0,
+          professores: 0,
+          clearExisting: true 
+        }
+      });
+
+      if (fnError) {
+        throw new Error(fnError.message);
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success('Todos os dados de teste foram removidos!', {
+        description: 'O banco de dados foi limpo com sucesso.',
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(message);
+      toast.error('Erro ao limpar dados', { description: message });
+    } finally {
+      setIsClearingAll(false);
+    }
+  };
+
   const handleSeed = async () => {
     setIsConfirmOpen(false);
     setIsLoading(true);
@@ -84,7 +129,7 @@ export default function SeedData() {
     setError(null);
 
     try {
-      toast.info(clearExisting ? 'Limpando dados existentes e criando novos...' : 'Iniciando criação de dados de demonstração...', {
+      toast.info(clearExisting ? 'Limpando dados existentes e criando novos...' : 'Iniciando criação de dados de teste...', {
         description: 'Isso pode levar alguns minutos.',
         duration: 10000,
       });
@@ -137,11 +182,49 @@ export default function SeedData() {
       <div className="space-y-8 max-w-4xl mx-auto">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">
-            Gerador de Dados de Demonstração
+            Gerador de Dados de Teste
           </h1>
           <p className="text-muted-foreground mt-1">
-            Configure e crie dados fictícios para testar o sistema
+            Configure e crie dados realistas para testar o sistema (simula usuários e escolas reais)
           </p>
+        </div>
+
+        {/* Botão para limpar todos os dados */}
+        <div className="card-elevated p-6 border-2 border-destructive/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-destructive/10 rounded-xl">
+                <Trash2 className="w-8 h-8 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-foreground">
+                  Limpar Todos os Dados de Teste
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Remove todos os usuários e unidades criados pelo seed. Seu usuário atual será mantido.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setIsClearAllConfirmOpen(true)}
+              disabled={isLoading || isClearingAll}
+              variant="destructive"
+              size="lg"
+              className="gap-2"
+            >
+              {isClearingAll ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Limpando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-5 h-5" />
+                  Limpar Tudo
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="card-elevated p-8">
@@ -341,7 +424,7 @@ export default function SeedData() {
             <AlertDialogDescription>
               {clearExisting && (
                 <p className="text-destructive font-medium mb-2">
-                  ⚠️ Os dados de demonstração existentes serão removidos primeiro!
+                  ⚠️ Os dados de teste existentes serão removidos primeiro!
                 </p>
               )}
               Você está prestes a criar:
@@ -359,6 +442,38 @@ export default function SeedData() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleSeed}>
               Sim, Gerar Dados
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isClearAllConfirmOpen} onOpenChange={setIsClearAllConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Confirmar Limpeza Total</AlertDialogTitle>
+            <AlertDialogDescription>
+              <p className="text-destructive font-medium mb-2">
+                ⚠️ Esta ação é irreversível!
+              </p>
+              <p>
+                Todos os dados de teste serão permanentemente removidos:
+              </p>
+              <ul className="mt-2 space-y-1">
+                <li>• Todos os usuários de teste (professores, diretores, administradores)</li>
+                <li>• Todas as unidades/escolas de teste</li>
+              </ul>
+              <p className="mt-2 font-medium">
+                Seu usuário atual será mantido. O Dashboard será atualizado automaticamente.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleClearAllData}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Sim, Limpar Tudo
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
