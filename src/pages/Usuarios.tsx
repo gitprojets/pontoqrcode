@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CreateUserDialog } from '@/components/usuarios/CreateUserDialog';
 import { exportToPDF, exportToCSV } from '@/lib/exportUtils';
 import { toast } from 'sonner';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
 
 const cargoConfig: Record<AppRole, { label: string; color: string; icon: typeof Users }> = {
   professor: { label: 'Professor', color: 'bg-primary/10 text-primary', icon: GraduationCap },
@@ -71,14 +73,14 @@ const cargoConfig: Record<AppRole, { label: string; color: string; icon: typeof 
 // Categorias de usuários para as abas
 type UserCategory = 'todos' | 'administradores' | 'diretores' | 'coordenadores' | 'professores' | 'secretarios' | 'outros';
 
-const categoryConfig: Record<UserCategory, { label: string; roles: AppRole[] }> = {
-  todos: { label: 'Todos', roles: ['administrador', 'diretor', 'coordenador', 'professor', 'secretario', 'outro'] },
-  administradores: { label: 'Administradores', roles: ['administrador'] },
-  diretores: { label: 'Diretores', roles: ['diretor'] },
-  coordenadores: { label: 'Coordenadores', roles: ['coordenador'] },
-  professores: { label: 'Professores', roles: ['professor'] },
-  secretarios: { label: 'Secretários', roles: ['secretario'] },
-  outros: { label: 'Outros', roles: ['outro'] },
+const categoryConfig: Record<UserCategory, { label: string; shortLabel: string; roles: AppRole[] }> = {
+  todos: { label: 'Todos', shortLabel: 'Todos', roles: ['administrador', 'diretor', 'coordenador', 'professor', 'secretario', 'outro'] },
+  administradores: { label: 'Administradores', shortLabel: 'Adm', roles: ['administrador'] },
+  diretores: { label: 'Diretores', shortLabel: 'Dir', roles: ['diretor'] },
+  coordenadores: { label: 'Coordenadores', shortLabel: 'Coord', roles: ['coordenador'] },
+  professores: { label: 'Professores', shortLabel: 'Prof', roles: ['professor'] },
+  secretarios: { label: 'Secretários', shortLabel: 'Sec', roles: ['secretario'] },
+  outros: { label: 'Outros', shortLabel: 'Out', roles: ['outro'] },
 };
 
 // Define quais roles cada role pode editar/excluir
@@ -288,22 +290,23 @@ export default function Usuarios() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6 h-full flex flex-col">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold text-foreground">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-display font-bold text-foreground">
               Usuários do Sistema
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               Gerencie usuários e permissões de acesso
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2">
                   <Download className="w-4 h-4" />
-                  Exportar
+                  <span className="hidden sm:inline">Exportar</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -322,144 +325,222 @@ export default function Usuarios() {
         </div>
 
         {/* Search */}
-        <div className="flex gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="flex gap-2 sm:gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome ou e-mail..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
+              className="pl-9 sm:pl-10 text-sm sm:text-base"
             />
           </div>
         </div>
 
         {/* Tabs de Navegação */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as UserCategory)} className="w-full">
-          <TabsList className="grid grid-cols-7 w-full">
-            {(Object.keys(categoryConfig) as UserCategory[]).map((category) => (
-              <TabsTrigger key={category} value={category} className="text-xs sm:text-sm">
-                <span className="hidden sm:inline">{categoryConfig[category].label}</span>
-                <span className="sm:hidden">{categoryConfig[category].label.slice(0, 3)}</span>
-                <span className="ml-1 text-xs bg-muted-foreground/20 px-1.5 py-0.5 rounded-full">
-                  {getCategoryCount(category)}
-                </span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as UserCategory)} className="w-full flex-1 flex flex-col min-h-0">
+          <div className="w-full overflow-x-auto">
+            <TabsList className="inline-flex w-max min-w-full sm:grid sm:grid-cols-7 gap-1">
+              {(Object.keys(categoryConfig) as UserCategory[]).map((category) => (
+                <TabsTrigger key={category} value={category} className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">
+                  <span className="hidden md:inline">{categoryConfig[category].label}</span>
+                  <span className="md:hidden">{categoryConfig[category].shortLabel}</span>
+                  <span className="ml-1 text-xs bg-muted-foreground/20 px-1.5 py-0.5 rounded-full">
+                    {getCategoryCount(category)}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {/* Content for all tabs */}
           {(Object.keys(categoryConfig) as UserCategory[]).map((category) => (
-            <TabsContent key={category} value={category} className="mt-6">
+            <TabsContent key={category} value={category} className="mt-4 flex-1 min-h-0">
               {/* Loading State */}
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : filteredUsuarios.length === 0 ? (
-                <div className="card-elevated p-12 text-center">
-                  <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                <div className="card-elevated p-8 sm:p-12 text-center">
+                  <Users className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">
                     Nenhum usuário encontrado
                   </h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Não há usuários nesta categoria que correspondam à sua busca.
                   </p>
                 </div>
               ) : (
-                <div className="card-elevated overflow-hidden animate-slide-up">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/50">
-                          <th className="text-left py-4 px-6 text-sm font-medium text-muted-foreground">
-                            Usuário
-                          </th>
-                          <th className="text-left py-4 px-6 text-sm font-medium text-muted-foreground">
-                            Cargo
-                          </th>
-                          <th className="text-left py-4 px-6 text-sm font-medium text-muted-foreground">
-                            Unidade
-                          </th>
-                          <th className="text-left py-4 px-6 text-sm font-medium text-muted-foreground">
-                            Matrícula
-                          </th>
-                          <th className="text-right py-4 px-6 text-sm font-medium text-muted-foreground">
-                            Ações
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredUsuarios.map((usuario) => (
-                          <tr
-                            key={usuario.id}
-                            className="border-b border-border/50 hover:bg-muted/30 transition-colors"
-                          >
-                            <td className="py-4 px-6">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                                  {usuario.nome.split(' ').map(n => n[0]).slice(0, 2).join('')}
-                                </div>
-                                <div>
-                                  <p className="font-medium text-foreground">{usuario.nome}</p>
-                                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                    <Mail className="w-3 h-3" />
+                <div className="card-elevated overflow-hidden animate-slide-up h-full flex flex-col">
+                  <ScrollArea className="flex-1 h-[calc(100vh-400px)] min-h-[300px]">
+                    {/* Mobile Card View */}
+                    <div className="block lg:hidden p-4 space-y-3">
+                      {filteredUsuarios.map((usuario) => (
+                        <div
+                          key={usuario.id}
+                          className="bg-muted/30 rounded-lg p-4 border border-border/50"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold flex-shrink-0">
+                                {usuario.nome.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-foreground truncate">{usuario.nome}</p>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Mail className="w-3 h-3 flex-shrink-0" />
+                                  <span className="truncate">
                                     {shouldShowEmail(currentUserRole) ? usuario.email : maskEmail(usuario.email)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            {canEditRole(currentUserRole, usuario.role) && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="flex-shrink-0">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => openEditDialog(usuario)}>
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => openDeleteDialog(usuario.id)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                            <span className={cn(
+                              'inline-flex items-center px-2 py-0.5 rounded-full font-medium',
+                              cargoConfig[usuario.role]?.color || 'bg-muted text-muted-foreground'
+                            )}>
+                              {cargoConfig[usuario.role]?.label || usuario.role}
+                            </span>
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <Building className="w-3 h-3" />
+                              {usuario.unidade?.nome || 'Não atribuída'}
+                            </span>
+                            {usuario.matricula && (
+                              <span className="text-muted-foreground">
+                                Mat: {usuario.matricula}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block">
+                      <table className="w-full">
+                        <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
+                          <tr className="border-b border-border">
+                            <th className="text-left py-3 px-4 xl:px-6 text-sm font-medium text-muted-foreground">
+                              Usuário
+                            </th>
+                            <th className="text-left py-3 px-4 xl:px-6 text-sm font-medium text-muted-foreground">
+                              Cargo
+                            </th>
+                            <th className="text-left py-3 px-4 xl:px-6 text-sm font-medium text-muted-foreground">
+                              Unidade
+                            </th>
+                            <th className="text-left py-3 px-4 xl:px-6 text-sm font-medium text-muted-foreground">
+                              Matrícula
+                            </th>
+                            <th className="text-right py-3 px-4 xl:px-6 text-sm font-medium text-muted-foreground">
+                              Ações
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredUsuarios.map((usuario) => (
+                            <tr
+                              key={usuario.id}
+                              className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                            >
+                              <td className="py-3 px-4 xl:px-6">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-9 h-9 xl:w-10 xl:h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                                    {usuario.nome.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-foreground text-sm truncate max-w-[200px] xl:max-w-none">{usuario.nome}</p>
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                      <Mail className="w-3 h-3 flex-shrink-0" />
+                                      <span className="truncate max-w-[180px] xl:max-w-none">
+                                        {shouldShowEmail(currentUserRole) ? usuario.email : maskEmail(usuario.email)}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className={cn(
-                                'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
-                                cargoConfig[usuario.role]?.color || 'bg-muted text-muted-foreground'
-                              )}>
-                                {cargoConfig[usuario.role]?.label || usuario.role}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6">
-                              <div className="flex items-center gap-1 text-foreground">
-                                <Building className="w-4 h-4 text-muted-foreground" />
-                                {usuario.unidade?.nome || 'Não atribuída'}
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className="text-muted-foreground">
-                                {usuario.matricula || '-'}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6 text-right">
-                              {canEditRole(currentUserRole, usuario.role) ? (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                      <MoreVertical className="w-4 h-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => openEditDialog(usuario)}>
-                                      <Edit className="w-4 h-4 mr-2" />
-                                      Editar
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      onClick={() => openDeleteDialog(usuario.id)}
-                                      className="text-destructive"
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-2" />
-                                      Excluir
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              ) : (
-                                <span className="text-xs text-muted-foreground px-2">
-                                  Sem permissão
+                              </td>
+                              <td className="py-3 px-4 xl:px-6">
+                                <span className={cn(
+                                  'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                                  cargoConfig[usuario.role]?.color || 'bg-muted text-muted-foreground'
+                                )}>
+                                  {cargoConfig[usuario.role]?.label || usuario.role}
                                 </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                              </td>
+                              <td className="py-3 px-4 xl:px-6">
+                                <div className="flex items-center gap-1 text-foreground text-sm">
+                                  <Building className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                  <span className="truncate max-w-[150px] xl:max-w-none">
+                                    {usuario.unidade?.nome || 'Não atribuída'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 xl:px-6">
+                                <span className="text-sm text-muted-foreground">
+                                  {usuario.matricula || '-'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 xl:px-6 text-right">
+                                {canEditRole(currentUserRole, usuario.role) ? (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <MoreVertical className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => openEditDialog(usuario)}>
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        Editar
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        onClick={() => openDeleteDialog(usuario.id)}
+                                        className="text-destructive focus:text-destructive"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </ScrollArea>
+                  
+                  {/* Footer with count */}
+                  <div className="border-t border-border p-3 text-center text-sm text-muted-foreground bg-muted/30">
+                    Exibindo {filteredUsuarios.length} usuário{filteredUsuarios.length !== 1 ? 's' : ''}
                   </div>
                 </div>
               )}
@@ -469,45 +550,45 @@ export default function Usuarios() {
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
+      <Dialog open={isEditOpen} onOpenChange={(open) => { if (!open) { setIsEditOpen(false); resetForm(); } }}>
+        <DialogContent className="max-w-md mx-4 sm:mx-auto">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Nome *</label>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-nome">Nome</Label>
               <Input
+                id="edit-nome"
                 value={formData.nome}
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                placeholder="Nome completo"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">E-mail *</label>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">E-mail</Label>
               <Input
+                id="edit-email"
+                type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@exemplo.com"
-                type="email"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Matrícula</label>
+            <div className="space-y-2">
+              <Label htmlFor="edit-matricula">Matrícula</Label>
               <Input
+                id="edit-matricula"
                 value={formData.matricula}
                 onChange={(e) => setFormData({ ...formData, matricula: e.target.value })}
-                placeholder="Número de matrícula"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Unidade</label>
+            <div className="space-y-2">
+              <Label htmlFor="edit-unidade">Unidade</Label>
               <Select
                 value={formData.unidade_id}
                 onValueChange={(value) => setFormData({ ...formData, unidade_id: value })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma unidade" />
+                <SelectTrigger id="edit-unidade">
+                  <SelectValue placeholder="Selecione a unidade" />
                 </SelectTrigger>
                 <SelectContent>
                   {availableUnidades.map((unidade) => (
@@ -518,57 +599,51 @@ export default function Usuarios() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="text-sm font-medium">Cargo *</label>
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">Cargo</Label>
               <Select
                 value={formData.role}
-                onValueChange={(value: AppRole) => setFormData({ ...formData, role: value })}
+                onValueChange={(value) => setFormData({ ...formData, role: value as AppRole })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="edit-role">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {editableRoles.map((role) => (
                     <SelectItem key={role} value={role}>
-                      {cargoConfig[role]?.label || role}
+                      {cargoConfig[role].label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => { setIsEditOpen(false); resetForm(); }} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button 
-              variant="gradient" 
-              onClick={handleEdit}
-              disabled={!formData.nome || !formData.email || isSubmitting}
-            >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+            <Button onClick={handleEdit} disabled={isSubmitting} className="w-full sm:w-auto">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
+      {/* Delete Confirmation */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md mx-4 sm:mx-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Usuário</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Excluir'}
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="w-full sm:w-auto bg-destructive hover:bg-destructive/90">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

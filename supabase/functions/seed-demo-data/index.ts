@@ -79,6 +79,8 @@ interface SeedResults {
   diretores: number;
   professores: number;
   unidades: number;
+  deletedUsers: number;
+  deletedUnits: number;
   errors: string[];
 }
 
@@ -162,6 +164,8 @@ serve(async (req) => {
       diretores: 0,
       professores: 0,
       unidades: 0,
+      deletedUsers: 0,
+      deletedUnits: 0,
       errors: [],
     };
 
@@ -171,43 +175,115 @@ serve(async (req) => {
     if (clearExisting) {
       console.log('Clearing existing demo data...');
       
-      // Get all demo users (excluding the current user)
-      const { data: demoUsers } = await supabaseAdmin
-        .from('profiles')
-        .select('id, email')
-        .neq('id', currentUser.id)
-        .like('email', '%@prof.edu.br')
-        .or('email.like.%@diretor.edu.br,email.like.%@administrador.edu.br');
+      // Get ALL profiles that have demo email patterns (excluding the current user)
+      // Use multiple queries to get all demo users
+      const demoEmailPatterns = ['@prof.edu.br', '@diretor.edu.br', '@administrador.edu.br'];
       
-      if (demoUsers && demoUsers.length > 0) {
-        console.log(`Found ${demoUsers.length} demo users to delete...`);
+      for (const pattern of demoEmailPatterns) {
+        let hasMore = true;
+        let offset = 0;
+        const batchSize = 100;
         
-        // Delete users from auth (this will cascade to profiles and user_roles)
-        for (const user of demoUsers) {
-          try {
-            await supabaseAdmin.auth.admin.deleteUser(user.id);
-          } catch (e) {
-            console.error(`Error deleting user ${user.id}:`, e);
+        while (hasMore) {
+          const { data: demoUsers, error: fetchError } = await supabaseAdmin
+            .from('profiles')
+            .select('id, email')
+            .neq('id', currentUser.id)
+            .ilike('email', `%${pattern}`)
+            .range(offset, offset + batchSize - 1);
+          
+          if (fetchError) {
+            console.error('Error fetching demo users:', fetchError);
+            break;
+          }
+
+          if (!demoUsers || demoUsers.length === 0) {
+            hasMore = false;
+            break;
+          }
+          
+          console.log(`Found ${demoUsers.length} demo users with pattern ${pattern} at offset ${offset}`);
+          
+          // Delete users from auth (this will cascade to profiles and user_roles)
+          for (const user of demoUsers) {
+            try {
+              const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+              if (!deleteError) {
+                results.deletedUsers++;
+              } else {
+                console.error(`Error deleting user ${user.id}:`, deleteError);
+              }
+            } catch (e) {
+              console.error(`Error deleting user ${user.id}:`, e);
+            }
+          }
+          
+          if (demoUsers.length < batchSize) {
+            hasMore = false;
+          } else {
+            offset += batchSize;
           }
         }
-        console.log('Demo users deleted');
       }
+      
+      console.log(`Deleted ${results.deletedUsers} demo users`);
 
-      // Delete demo units (units without a diretor_id or created for demo)
-      const { data: demoUnits } = await supabaseAdmin
-        .from('unidades')
-        .select('id')
-        .is('diretor_id', null);
+      // Delete ALL demo units - units that don't have a real director assigned
+      // or units created by seed (no diretor_id)
+      let hasMoreUnits = true;
+      let unitOffset = 0;
       
-      if (demoUnits && demoUnits.length > 0) {
-        console.log(`Found ${demoUnits.length} demo units to delete...`);
-        await supabaseAdmin
+      while (hasMoreUnits) {
+        const { data: demoUnits, error: unitFetchError } = await supabaseAdmin
           .from('unidades')
-          .delete()
-          .is('diretor_id', null);
-        console.log('Demo units deleted');
+          .select('id, nome')
+          .is('diretor_id', null)
+          .range(unitOffset, unitOffset + 99);
+        
+        if (unitFetchError) {
+          console.error('Error fetching demo units:', unitFetchError);
+          break;
+        }
+
+        if (!demoUnits || demoUnits.length === 0) {
+          hasMoreUnits = false;
+          break;
+        }
+
+        console.log(`Found ${demoUnits.length} demo units to delete at offset ${unitOffset}`);
+        
+        // Delete each unit individually to ensure cascading works
+        for (const unit of demoUnits) {
+          try {
+            // First delete any related records
+            await supabaseAdmin.from('registros_frequencia').delete().eq('unidade_id', unit.id);
+            await supabaseAdmin.from('escalas_trabalho').delete().eq('unidade_id', unit.id);
+            await supabaseAdmin.from('dispositivos').delete().eq('unidade_id', unit.id);
+            await supabaseAdmin.from('school_events').delete().eq('unidade_id', unit.id);
+            
+            // Then delete the unit
+            const { error: deleteUnitError } = await supabaseAdmin
+              .from('unidades')
+              .delete()
+              .eq('id', unit.id);
+              
+            if (!deleteUnitError) {
+              results.deletedUnits++;
+            } else {
+              console.error(`Error deleting unit ${unit.id}:`, deleteUnitError);
+            }
+          } catch (e) {
+            console.error(`Error deleting unit ${unit.id}:`, e);
+          }
+        }
+        
+        if (demoUnits.length < 100) {
+          hasMoreUnits = false;
+        }
+        // Don't increment offset since we're deleting records
       }
       
+      console.log(`Deleted ${results.deletedUnits} demo units`);
       console.log('Existing demo data cleared');
     }
 
@@ -391,8 +467,15 @@ serve(async (req) => {
         success: true, 
         message: 'Dados criados com sucesso!',
         created: {
-          ...results,
+          administradores: results.administradores,
+          diretores: results.diretores,
+          professores: results.professores,
+          unidades: results.unidades,
           total: results.administradores + results.diretores + results.professores + results.unidades
+        },
+        deleted: {
+          users: results.deletedUsers,
+          units: results.deletedUnits
         },
         limits: MAX_LIMITS
       }),

@@ -27,77 +27,76 @@ export interface UsuarioInput {
   role: AppRole;
 }
 
-interface PaginationState {
-  page: number;
-  pageSize: number;
-  total: number;
-  hasMore: boolean;
-}
-
 export function useUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [pagination, setPagination] = useState<PaginationState>({
-    page: 0,
-    pageSize: 50,
-    total: 0,
-    hasMore: true,
-  });
 
-  const fetchUsuarios = useCallback(async (page = 0, pageSize = 50, append = false) => {
+  const fetchUsuarios = useCallback(async () => {
     try {
       setIsLoading(true);
       
-      const from = page * pageSize;
-      const to = from + pageSize - 1;
+      // Fetch ALL profiles without pagination limit
+      // Use multiple queries if needed to bypass 1000 row limit
+      let allProfiles: any[] = [];
+      let hasMore = true;
+      let offset = 0;
+      const batchSize = 1000;
+
+      while (hasMore) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select(`
+            *,
+            unidade:unidades!profiles_unidade_id_fkey(nome)
+          `)
+          .order('nome')
+          .range(offset, offset + batchSize - 1);
+
+        if (profilesError) throw profilesError;
+
+        if (profiles && profiles.length > 0) {
+          allProfiles = [...allProfiles, ...profiles];
+          offset += batchSize;
+          hasMore = profiles.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      if (allProfiles.length === 0) {
+        setUsuarios([]);
+        return;
+      }
+
+      // Get roles for all fetched users (also handle batching for roles)
+      const userIds = allProfiles.map(p => p.id);
+      let allRoles: any[] = [];
       
-      // Get total count
-      const { count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      // Batch the role queries to avoid URL length limits
+      const roleBatchSize = 100;
+      for (let i = 0; i < userIds.length; i += roleBatchSize) {
+        const batchIds = userIds.slice(i, i + roleBatchSize);
+        const { data: roles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', batchIds);
 
-      // Get profiles with pagination - specify relationship to avoid ambiguity
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          unidade:unidades!profiles_unidade_id_fkey(nome)
-        `)
-        .order('nome')
-        .range(from, to);
-
-      if (profilesError) throw profilesError;
-
-      // Get roles for fetched users only
-      const userIds = (profiles || []).map(p => p.id);
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('user_id', userIds);
-
-      if (rolesError) throw rolesError;
+        if (rolesError) throw rolesError;
+        if (roles) {
+          allRoles = [...allRoles, ...roles];
+        }
+      }
 
       // Combine profiles with roles
-      const usuariosWithRoles = (profiles || []).map(profile => {
-        const userRole = roles?.find(r => r.user_id === profile.id);
+      const usuariosWithRoles = allProfiles.map(profile => {
+        const userRole = allRoles.find(r => r.user_id === profile.id);
         return {
           ...profile,
           role: (userRole?.role || 'professor') as AppRole,
         };
       });
       
-      if (append) {
-        setUsuarios(prev => [...prev, ...usuariosWithRoles as Usuario[]]);
-      } else {
-        setUsuarios(usuariosWithRoles as Usuario[]);
-      }
-
-      setPagination({
-        page,
-        pageSize,
-        total: count || 0,
-        hasMore: (from + (profiles?.length || 0)) < (count || 0),
-      });
+      setUsuarios(usuariosWithRoles as Usuario[]);
     } catch (error: any) {
       console.error('Erro ao carregar usuários:', error);
       toast.error('Erro ao carregar usuários');
@@ -105,12 +104,6 @@ export function useUsuarios() {
       setIsLoading(false);
     }
   }, []);
-
-  const loadMore = useCallback(() => {
-    if (pagination.hasMore && !isLoading) {
-      fetchUsuarios(pagination.page + 1, pagination.pageSize, true);
-    }
-  }, [fetchUsuarios, pagination, isLoading]);
 
   const updateUsuarioRole = async (userId: string, role: AppRole) => {
     try {
@@ -138,7 +131,7 @@ export function useUsuarios() {
       }
       
       toast.success('Role atualizada com sucesso!');
-      await fetchUsuarios(0, pagination.pageSize);
+      await fetchUsuarios();
     } catch (error: any) {
       console.error('Erro ao atualizar role:', error);
       toast.error('Erro ao atualizar role: ' + error.message);
@@ -163,7 +156,7 @@ export function useUsuarios() {
         await updateUsuarioRole(id, role);
       } else {
         toast.success('Usuário atualizado com sucesso!');
-        await fetchUsuarios(0, pagination.pageSize);
+        await fetchUsuarios();
       }
     } catch (error: any) {
       console.error('Erro ao atualizar usuário:', error);
@@ -187,7 +180,7 @@ export function useUsuarios() {
       if (error) throw error;
       
       toast.success('Usuário excluído com sucesso!');
-      await fetchUsuarios(0, pagination.pageSize);
+      await fetchUsuarios();
     } catch (error: any) {
       console.error('Erro ao excluir usuário:', error);
       toast.error('Erro ao excluir usuário: ' + error.message);
@@ -217,9 +210,7 @@ export function useUsuarios() {
   return {
     usuarios,
     isLoading,
-    pagination,
     fetchUsuarios,
-    loadMore,
     updateUsuario,
     updateUsuarioRole,
     deleteUsuario,
