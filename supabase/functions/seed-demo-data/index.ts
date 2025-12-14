@@ -111,6 +111,7 @@ serve(async (req) => {
       diretores: 10,
       professores: 50,
     };
+    let clearExisting = false;
 
     try {
       const body = await req.json();
@@ -121,6 +122,7 @@ serve(async (req) => {
           diretores: Math.min(Math.max(0, body.diretores || 0), MAX_LIMITS.diretores),
           professores: Math.min(Math.max(0, body.professores || 0), MAX_LIMITS.professores),
         };
+        clearExisting = body.clearExisting === true;
       }
     } catch {
       // Use defaults if body parsing fails
@@ -164,6 +166,50 @@ serve(async (req) => {
     };
 
     const defaultPassword = 'Senha@123';
+
+    // Step 0: Clear existing data if requested
+    if (clearExisting) {
+      console.log('Clearing existing demo data...');
+      
+      // Get all demo users (excluding the current user)
+      const { data: demoUsers } = await supabaseAdmin
+        .from('profiles')
+        .select('id, email')
+        .neq('id', currentUser.id)
+        .like('email', '%@prof.edu.br')
+        .or('email.like.%@diretor.edu.br,email.like.%@administrador.edu.br');
+      
+      if (demoUsers && demoUsers.length > 0) {
+        console.log(`Found ${demoUsers.length} demo users to delete...`);
+        
+        // Delete users from auth (this will cascade to profiles and user_roles)
+        for (const user of demoUsers) {
+          try {
+            await supabaseAdmin.auth.admin.deleteUser(user.id);
+          } catch (e) {
+            console.error(`Error deleting user ${user.id}:`, e);
+          }
+        }
+        console.log('Demo users deleted');
+      }
+
+      // Delete demo units (units without a diretor_id or created for demo)
+      const { data: demoUnits } = await supabaseAdmin
+        .from('unidades')
+        .select('id')
+        .is('diretor_id', null);
+      
+      if (demoUnits && demoUnits.length > 0) {
+        console.log(`Found ${demoUnits.length} demo units to delete...`);
+        await supabaseAdmin
+          .from('unidades')
+          .delete()
+          .is('diretor_id', null);
+        console.log('Demo units deleted');
+      }
+      
+      console.log('Existing demo data cleared');
+    }
 
     // Step 1: Create Units
     let unidadeIds: string[] = [];

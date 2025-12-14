@@ -14,7 +14,9 @@ import {
   Loader2,
   CheckCircle2,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +49,7 @@ export default function SeedData() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [result, setResult] = useState<SeedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clearExisting, setClearExisting] = useState(false);
   
   // Limites para evitar timeout da edge function
   const MAX_LIMITS = {
@@ -81,13 +84,13 @@ export default function SeedData() {
     setError(null);
 
     try {
-      toast.info('Iniciando criação de dados de demonstração...', {
+      toast.info(clearExisting ? 'Limpando dados existentes e criando novos...' : 'Iniciando criação de dados de demonstração...', {
         description: 'Isso pode levar alguns minutos.',
         duration: 10000,
       });
 
       const { data, error: fnError } = await supabase.functions.invoke('seed-demo-data', {
-        body: config
+        body: { ...config, clearExisting }
       });
 
       if (fnError) {
@@ -251,6 +254,26 @@ export default function SeedData() {
             </div>
           </div>
 
+          <div className="flex items-center space-x-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg mb-6">
+            <Checkbox
+              id="clearExisting"
+              checked={clearExisting}
+              onCheckedChange={(checked) => setClearExisting(checked === true)}
+            />
+            <div className="flex-1">
+              <label
+                htmlFor="clearExisting"
+                className="flex items-center gap-2 text-sm font-medium cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 text-destructive" />
+                Limpar dados de demonstração existentes antes de criar novos
+              </label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Remove todos os usuários e unidades criados anteriormente pelo seed (não afeta seu usuário atual)
+              </p>
+            </div>
+          </div>
+
           {result && (
             <div className="p-4 bg-success/10 border border-success/20 rounded-lg mb-6">
               <div className="flex items-start gap-3">
@@ -316,6 +339,11 @@ export default function SeedData() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Geração de Dados</AlertDialogTitle>
             <AlertDialogDescription>
+              {clearExisting && (
+                <p className="text-destructive font-medium mb-2">
+                  ⚠️ Os dados de demonstração existentes serão removidos primeiro!
+                </p>
+              )}
               Você está prestes a criar:
               <ul className="mt-2 space-y-1">
                 <li>• {config.unidades} unidades</li>
