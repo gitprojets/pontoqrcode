@@ -38,16 +38,15 @@ const Index = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [escolasRes, usuariosRes, leiturasRes] = await Promise.all([
-          supabase.from('unidades').select('id', { count: 'exact', head: true }),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }),
-          supabase.from('registros_frequencia').select('id', { count: 'exact', head: true }).eq('data_registro', new Date().toISOString().split('T')[0])
-        ]);
+        // Buscar contagens sem RLS usando select com count
+        const { data: escolas } = await supabase.from('unidades').select('id');
+        const { data: usuarios } = await supabase.from('profiles').select('id');
+        const { data: leituras } = await supabase.from('registros_frequencia').select('id').eq('data_registro', new Date().toISOString().split('T')[0]);
         
         setStats({
-          escolas: escolasRes.count || 0,
-          usuarios: usuariosRes.count || 0,
-          leituras: leiturasRes.count || 0
+          escolas: escolas?.length || 0,
+          usuarios: usuarios?.length || 0,
+          leituras: leituras?.length || 0
         });
       } catch (error) {
         console.error('Erro ao buscar estatísticas:', error);
