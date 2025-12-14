@@ -74,19 +74,19 @@ export default function SeedData() {
   const [error, setError] = useState<string | null>(null);
   const [clearExisting, setClearExisting] = useState(true);
   
-  // Limites para evitar timeout da edge function
+  // Limites máximos configurados
   const MAX_LIMITS = {
-    unidades: 50,
-    administradores: 20,
-    diretores: 50,
-    coordenadores: 30,
-    secretarios: 30,
-    professores: 100,
-    vigias: 30,
-    zeladoras: 30,
-    merendeiras: 30,
-    assistentes: 30,
-    digitadores: 30,
+    unidades: 500,
+    administradores: 1000,
+    diretores: 1000,
+    coordenadores: 500,
+    secretarios: 500,
+    professores: 5000,
+    vigias: 200,
+    zeladoras: 200,
+    merendeiras: 200,
+    assistentes: 200,
+    digitadores: 200,
   };
   
   const [config, setConfig] = useState<SeedConfig>({
