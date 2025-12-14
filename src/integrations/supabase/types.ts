@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_unidades: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          unidade_id: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          unidade_id: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_unidades_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_unidades_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispositivos: {
         Row: {
           api_key: string | null
@@ -527,6 +563,7 @@ export type Database = {
         Returns: string
       }
       cleanup_expired_nonces: { Args: never; Returns: undefined }
+      get_admin_unit_ids: { Args: { _user_id: string }; Returns: string[] }
       get_dispositivo_api_key: {
         Args: { dispositivo_id: string }
         Returns: string
@@ -555,6 +592,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_admin_for_unit: {
+        Args: { _unidade_id: string; _user_id: string }
         Returns: boolean
       }
     }
