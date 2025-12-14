@@ -31,21 +31,9 @@ export function useDispositivos() {
   const fetchDispositivos = useCallback(async () => {
     try {
       setIsLoading(true);
-      // Use the safe view that excludes api_key for security
+      // Use the RPC function that respects RLS and excludes api_key for security
       const { data, error } = await supabase
-        .from('dispositivos_safe')
-        .select(`
-          id,
-          nome,
-          unidade_id,
-          local,
-          status,
-          ultima_leitura,
-          leituras_hoje,
-          created_at,
-          updated_at
-        `)
-        .order('nome');
+        .rpc('get_dispositivos_safe');
       
       if (error) throw error;
       
