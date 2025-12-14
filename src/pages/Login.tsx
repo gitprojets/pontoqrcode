@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, ArrowLeft } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ThemedLogo } from '@/components/ThemedLogo';
@@ -13,7 +13,29 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [stats, setStats] = useState({ escolas: 0, usuarios: 0, leituras: 0 });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [escolasRes, usuariosRes, leiturasRes] = await Promise.all([
+          supabase.from('unidades').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
+          supabase.from('registros_frequencia').select('id', { count: 'exact', head: true }).eq('data_registro', new Date().toISOString().split('T')[0])
+        ]);
+        
+        setStats({
+          escolas: escolasRes.count || 0,
+          usuarios: usuariosRes.count || 0,
+          leituras: leiturasRes.count || 0
+        });
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,8 +126,7 @@ export default function Login() {
             </div>
             
             <h2 className="text-2xl xl:text-4xl font-display font-bold leading-tight mb-4 xl:mb-6">
-              Gestão de presença<br />
-              simples e eficiente
+              Gestão Escolar Ágil
             </h2>
             
             <p className="text-base xl:text-lg text-sidebar-foreground/80 max-w-md">
@@ -116,9 +137,9 @@ export default function Login() {
 
           <div className="grid grid-cols-3 gap-3 xl:gap-4">
             {[
-              { label: 'Escolas', value: '120+' },
-              { label: 'Usuários', value: '15k+' },
-              { label: 'Leituras/dia', value: '50k+' },
+              { label: 'Escolas', value: stats.escolas },
+              { label: 'Usuários', value: stats.usuarios },
+              { label: 'Leituras/dia', value: stats.leituras },
             ].map((stat) => (
               <div key={stat.label} className="bg-sidebar-foreground/10 rounded-xl p-3 xl:p-4">
                 <p className="text-xl xl:text-2xl font-display font-bold">{stat.value}</p>
