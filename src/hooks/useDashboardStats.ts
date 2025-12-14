@@ -137,6 +137,7 @@ export function useDashboardStats() {
         }
       } else if (role === 'administrador' || role === 'desenvolvedor') {
         // Admin stats - system-wide - fetch fresh data from database
+        // Only count non-demo units (units with a diretor_id assigned)
         const { count: unidadesCount, error: unidadesError } = await supabase
           .from('unidades')
           .select('*', { count: 'exact', head: true })
@@ -146,9 +147,20 @@ export function useDashboardStats() {
           console.error('Error fetching unidades count:', unidadesError);
         }
 
-        const { count: usuariosCount, error: usuariosError } = await supabase
+        // Count only real users (exclude demo users with @prof.edu.br, @diretor.edu.br, @administrador.edu.br emails)
+        const { data: allProfiles, error: usuariosError } = await supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true });
+          .select('email');
+
+        let realUsersCount = 0;
+        if (!usuariosError && allProfiles) {
+          // Filter out demo emails
+          realUsersCount = allProfiles.filter(p => 
+            !p.email.includes('@prof.edu.br') && 
+            !p.email.includes('@diretor.edu.br') && 
+            !p.email.includes('@administrador.edu.br')
+          ).length;
+        }
 
         if (usuariosError) {
           console.error('Error fetching usuarios count:', usuariosError);
@@ -186,7 +198,7 @@ export function useDashboardStats() {
           pendencias: 0,
           taxaGeral: '0',
           unidadesAtivas: unidadesCount || 0,
-          totalUsuarios: usuariosCount || 0,
+          totalUsuarios: realUsersCount,
           leiturasHoje: leiturasCount || 0,
           dispositivosOnline,
           dispositivosTotal: dispositivos?.length || 0,
