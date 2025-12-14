@@ -10,12 +10,22 @@ import {
   Clock,
   Coffee,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import { EscalasSemanalEditor } from '@/components/escalas/EscalasSemanalEditor';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAdminUnidades } from '@/hooks/useAdminUnidades';
+import { useUnidades } from '@/hooks/useUnidades';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Professor {
   id: string;
@@ -25,17 +35,35 @@ interface Professor {
 }
 
 export default function Escalas() {
-  const { profile } = useAuth();
+  const { profile, role } = useAuth();
+  const { adminUnidades } = useAdminUnidades();
+  const { unidades } = useUnidades();
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfessor, setSelectedProfessor] = useState<Professor | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [escalasSemana, setEscalasSemana] = useState<Record<string, any[]>>({});
+  const [selectedUnidade, setSelectedUnidade] = useState<string>('');
 
-  const unidadeId = profile?.unidade_id;
   const currentWeek = startOfWeek(new Date(), { locale: ptBR });
   const semanaInicioStr = format(currentWeek, 'yyyy-MM-dd');
+
+  // Get available units for admin
+  const availableUnidades = role === 'administrador' 
+    ? unidades.filter(u => adminUnidades.includes(u.id))
+    : unidades;
+
+  // Set initial selected unit
+  useEffect(() => {
+    if (role === 'administrador' && availableUnidades.length > 0 && !selectedUnidade) {
+      setSelectedUnidade(availableUnidades[0].id);
+    } else if (role === 'desenvolvedor' && unidades.length > 0 && !selectedUnidade) {
+      setSelectedUnidade(unidades[0].id);
+    }
+  }, [availableUnidades, unidades, role, selectedUnidade]);
+
+  const unidadeId = selectedUnidade || profile?.unidade_id;
 
   useEffect(() => {
     const fetchProfessores = async () => {
@@ -119,15 +147,28 @@ export default function Escalas() {
     <MainLayout>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold text-foreground">
+            <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
               Escalas de Trabalho
             </h1>
             <p className="text-muted-foreground mt-1">
               Gerencie os horários e dias de trabalho dos professores
             </p>
           </div>
+          
+          {(role === 'administrador' || role === 'desenvolvedor') && availableUnidades.length > 0 && (
+            <Select value={selectedUnidade} onValueChange={setSelectedUnidade}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Selecione a unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableUnidades.map(u => (
+                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Quick Stats */}
