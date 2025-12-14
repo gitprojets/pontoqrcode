@@ -103,6 +103,22 @@ const isUserVisible = (currentRole: AppRole | null, targetRole: AppRole, current
   return false;
 };
 
+// Define se o email do usuário deve ser exibido (segurança)
+const shouldShowEmail = (currentRole: AppRole | null): boolean => {
+  // Apenas desenvolvedores veem emails diretamente na listagem
+  return currentRole === 'desenvolvedor';
+};
+
+// Mascara o email para exibição
+const maskEmail = (email: string): string => {
+  const [local, domain] = email.split('@');
+  if (!domain) return '***@***';
+  const maskedLocal = local.length > 2 
+    ? local[0] + '***' + local[local.length - 1]
+    : '***';
+  return `${maskedLocal}@${domain}`;
+};
+
 export default function Usuarios() {
   const { usuarios, isLoading, updateUsuario, deleteUsuario, fetchUsuarios } = useUsuarios();
   const { unidades } = useUnidades();
@@ -203,7 +219,7 @@ export default function Usuarios() {
   const handleExportPDF = () => {
     const dataToExport = filteredUsuarios.map(u => ({
       nome: u.nome,
-      email: u.email,
+      email: shouldShowEmail(currentUserRole) ? u.email : maskEmail(u.email),
       cargo: cargoConfig[u.role]?.label || u.role,
       unidade: u.unidade?.nome || 'Não atribuída',
       matricula: u.matricula || '-',
@@ -229,7 +245,7 @@ export default function Usuarios() {
   const handleExportCSV = () => {
     const dataToExport = filteredUsuarios.map(u => ({
       nome: u.nome,
-      email: u.email,
+      email: shouldShowEmail(currentUserRole) ? u.email : maskEmail(u.email),
       cargo: cargoConfig[u.role]?.label || u.role,
       unidade: u.unidade?.nome || 'Não atribuída',
       matricula: u.matricula || '-',
@@ -388,7 +404,7 @@ export default function Usuarios() {
                                   <p className="font-medium text-foreground">{usuario.nome}</p>
                                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                     <Mail className="w-3 h-3" />
-                                    {usuario.email}
+                                    {shouldShowEmail(currentUserRole) ? usuario.email : maskEmail(usuario.email)}
                                   </div>
                                 </div>
                               </div>

@@ -1,9 +1,11 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { AttendanceChart } from '@/components/dashboard/AttendanceChart';
 import { SchoolCalendar } from '@/components/calendar/SchoolCalendar';
 import { AttendanceHistory } from '@/components/attendance/AttendanceHistory';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useAttendanceChart } from '@/hooks/useAttendanceChart';
 import { Button } from '@/components/ui/button';
 import {
   CheckCircle,
@@ -20,6 +22,7 @@ import {
 
 function ProfessorDashboard() {
   const { stats, isLoading } = useDashboardStats();
+  const { data: chartData, isLoading: chartLoading } = useAttendanceChart(14);
 
   if (isLoading) {
     return (
@@ -70,6 +73,12 @@ function ProfessorDashboard() {
         />
       </div>
 
+      <AttendanceChart 
+        data={chartData} 
+        isLoading={chartLoading}
+        title="Minha Frequência - Últimos 14 dias"
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <SchoolCalendar />
         <AttendanceHistory />
@@ -80,6 +89,7 @@ function ProfessorDashboard() {
 
 function DiretorDashboard() {
   const { stats, isLoading } = useDashboardStats();
+  const { data: chartData, isLoading: chartLoading } = useAttendanceChart(14);
 
   if (isLoading) {
     return (
@@ -131,6 +141,12 @@ function DiretorDashboard() {
         />
       </div>
 
+      <AttendanceChart 
+        data={chartData} 
+        isLoading={chartLoading}
+        title="Frequência da Unidade - Últimos 14 dias"
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <SchoolCalendar />
         <AttendanceHistory />
@@ -141,6 +157,12 @@ function DiretorDashboard() {
 
 function AdminDashboard() {
   const { stats, isLoading, refresh } = useDashboardStats();
+  const { data: chartData, isLoading: chartLoading, refresh: refreshChart } = useAttendanceChart(14);
+
+  const handleRefresh = () => {
+    refresh();
+    refreshChart();
+  };
 
   if (isLoading) {
     return (
@@ -161,7 +183,7 @@ function AdminDashboard() {
             Visão geral de todas as unidades
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={refresh} className="gap-2">
+        <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2">
           <RefreshCw className="w-4 h-4" />
           Atualizar
         </Button>
@@ -197,6 +219,12 @@ function AdminDashboard() {
           variant="default"
         />
       </div>
+
+      <AttendanceChart 
+        data={chartData} 
+        isLoading={chartLoading}
+        title="Frequência Geral - Últimos 14 dias"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <SchoolCalendar />

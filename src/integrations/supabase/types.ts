@@ -103,13 +103,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "email_notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       escalas_trabalho: {
@@ -164,24 +157,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "escalas_trabalho_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "escalas_trabalho_professor_id_fkey"
             columns: ["professor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "escalas_trabalho_professor_id_fkey"
-            columns: ["professor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
@@ -270,13 +249,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "qr_nonces_professor_id_fkey"
-            columns: ["professor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       registros_frequencia: {
@@ -345,24 +317,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "registros_frequencia_lido_por_fkey"
-            columns: ["lido_por"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "registros_frequencia_professor_id_fkey"
             columns: ["professor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "registros_frequencia_professor_id_fkey"
-            columns: ["professor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
@@ -423,13 +381,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "school_events_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "school_events_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
@@ -487,24 +438,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "support_tickets_responded_by_fkey"
-            columns: ["responded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "support_tickets_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "support_tickets_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -555,13 +492,6 @@ export type Database = {
             columns: ["diretor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "unidades_diretor_id_fkey"
-            columns: ["diretor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -626,50 +556,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dispositivos_unidade_id_fkey"
-            columns: ["unidade_id"]
-            isOneToOne: false
-            referencedRelation: "unidades"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles_safe: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          foto: string | null
-          id: string | null
-          matricula: string | null
-          nome: string | null
-          unidade: string | null
-          unidade_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: never
-          foto?: string | null
-          id?: string | null
-          matricula?: string | null
-          nome?: string | null
-          unidade?: string | null
-          unidade_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: never
-          foto?: string | null
-          id?: string | null
-          matricula?: string | null
-          nome?: string | null
-          unidade?: string | null
-          unidade_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
