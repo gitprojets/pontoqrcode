@@ -116,7 +116,9 @@ export default function Relatorios() {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [selectedUnidade, setSelectedUnidade] = useState<string>('all');
 
-  const canSelectUnidade = role === 'administrador' || role === 'desenvolvedor';
+  // Diretores, Coordenadores e Secretários só podem ver relatórios da sua unidade
+  const canSelectUnidade = role === 'desenvolvedor';
+  const isUnitRestricted = role === 'diretor' || role === 'coordenador' || role === 'secretario' || role === 'administrador';
 
   const fetchStats = useCallback(async () => {
     try {

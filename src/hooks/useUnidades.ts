@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface Unidade {
   id: string;
@@ -31,12 +32,61 @@ export interface UnidadeInput {
 }
 
 export function useUnidades() {
+  const { profile, role } = useAuth();
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchUnidades = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Para administradores, buscar unidades vinculadas
+      if (role === 'administrador' && profile?.id) {
+        const { data: adminUnidadeIds } = await supabase
+          .from('admin_unidades')
+          .select('unidade_id')
+          .eq('admin_id', profile.id);
+
+        const unidadeIds = (adminUnidadeIds || []).map(au => au.unidade_id);
+        
+        if (unidadeIds.length === 0) {
+          setUnidades([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('unidades')
+          .select(`
+            *,
+            diretor:profiles!unidades_diretor_id_fkey(nome)
+          `)
+          .in('id', unidadeIds)
+          .order('nome');
+
+        if (error) throw error;
+        setUnidades((data || []) as Unidade[]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Para diretores, coordenadores e secretários, mostrar apenas sua unidade
+      if ((role === 'diretor' || role === 'coordenador' || role === 'secretario') && profile?.unidade_id) {
+        const { data, error } = await supabase
+          .from('unidades')
+          .select(`
+            *,
+            diretor:profiles!unidades_diretor_id_fkey(nome)
+          `)
+          .eq('id', profile.unidade_id);
+
+        if (error) throw error;
+        setUnidades((data || []) as Unidade[]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Para desenvolvedores, buscar todas as unidades
       const { data, error } = await supabase
         .from('unidades')
         .select(`
@@ -54,7 +104,7 @@ export function useUnidades() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [profile?.id, profile?.unidade_id, role]);
 
   const createUnidade = async (input: UnidadeInput) => {
     try {

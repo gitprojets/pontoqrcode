@@ -20,6 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { AppRole } from '@/hooks/useUsuarios';
 
 interface Unidade {
@@ -33,13 +36,14 @@ interface CreateUserDialogProps {
 }
 
 // Define quais roles cada role pode criar
+// Diretor, Coordenador e Secretário não podem criar usuários
 const rolePermissions: Record<AppRole, AppRole[]> = {
   desenvolvedor: ['administrador', 'diretor', 'coordenador', 'professor', 'secretario', 'outro'],
   administrador: ['diretor', 'coordenador', 'professor', 'secretario', 'outro'],
-  diretor: ['coordenador', 'professor', 'secretario'],
-  coordenador: [],
+  diretor: [], // Diretor não pode criar usuários
+  coordenador: [], // Coordenador não pode criar usuários
   professor: [],
-  secretario: [],
+  secretario: [], // Secretário não pode criar usuários
   outro: [],
 };
 
@@ -65,10 +69,12 @@ export function CreateUserDialog({ unidades, onSuccess }: CreateUserDialogProps)
     unidade_id: '',
     role: 'professor' as AppRole,
   });
+  const [selectedAdminUnidades, setSelectedAdminUnidades] = useState<string[]>([]);
 
   const allowedRoles = currentUserRole ? rolePermissions[currentUserRole] : [];
-
   const canCreateUsers = allowedRoles.length > 0;
+  const isCreatingAdmin = formData.role === 'administrador';
+  const isDev = currentUserRole === 'desenvolvedor';
 
   const resetForm = () => {
     setFormData({
@@ -79,6 +85,15 @@ export function CreateUserDialog({ unidades, onSuccess }: CreateUserDialogProps)
       unidade_id: '',
       role: 'professor',
     });
+    setSelectedAdminUnidades([]);
+  };
+
+  const toggleUnidade = (unidadeId: string) => {
+    setSelectedAdminUnidades(prev => 
+      prev.includes(unidadeId) 
+        ? prev.filter(id => id !== unidadeId)
+        : [...prev, unidadeId]
+    );
   };
 
   const handleSubmit = async () => {
@@ -98,6 +113,12 @@ export function CreateUserDialog({ unidades, onSuccess }: CreateUserDialogProps)
       return;
     }
 
+    // Validar que ao criar administrador, ao menos uma unidade está selecionada
+    if (isCreatingAdmin && isDev && selectedAdminUnidades.length === 0) {
+      toast.error('Selecione ao menos uma unidade para o administrador');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Call Edge Function for server-side validated user creation
@@ -109,6 +130,7 @@ export function CreateUserDialog({ unidades, onSuccess }: CreateUserDialogProps)
           role: formData.role,
           unidade_id: formData.unidade_id || null,
           matricula: formData.matricula || null,
+          admin_unidades: isCreatingAdmin && isDev ? selectedAdminUnidades : null,
         },
       });
 
@@ -143,9 +165,6 @@ export function CreateUserDialog({ unidades, onSuccess }: CreateUserDialogProps)
     if (currentUserRole === 'administrador') {
       return 'Como administrador, você pode criar Diretores, Coordenadores, Professores, Secretários e Outros';
     }
-    if (currentUserRole === 'diretor') {
-      return 'Como diretor, você pode criar Coordenadores, Professores e Secretários';
-    }
     return '';
   };
 
@@ -157,7 +176,7 @@ export function CreateUserDialog({ unidades, onSuccess }: CreateUserDialogProps)
           Novo Usuário
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Criar Novo Usuário</DialogTitle>
         </DialogHeader>
@@ -196,29 +215,39 @@ export function CreateUserDialog({ unidades, onSuccess }: CreateUserDialogProps)
               placeholder="Número de matrícula"
             />
           </div>
-          <div>
-            <label className="text-sm font-medium">Unidade</label>
-            <Select
-              value={formData.unidade_id}
-              onValueChange={(value) => setFormData({ ...formData, unidade_id: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma unidade" />
-              </SelectTrigger>
-              <SelectContent>
-                {unidades.map((unidade) => (
-                  <SelectItem key={unidade.id} value={unidade.id}>
-                    {unidade.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          
+          {/* Unidade para usuários não-administradores */}
+          {!isCreatingAdmin && (
+            <div>
+              <label className="text-sm font-medium">Unidade</label>
+              <Select
+                value={formData.unidade_id}
+                onValueChange={(value) => setFormData({ ...formData, unidade_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma unidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unidades.map((unidade) => (
+                    <SelectItem key={unidade.id} value={unidade.id}>
+                      {unidade.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <label className="text-sm font-medium">Cargo *</label>
             <Select
               value={formData.role}
-              onValueChange={(value: AppRole) => setFormData({ ...formData, role: value })}
+              onValueChange={(value: AppRole) => {
+                setFormData({ ...formData, role: value });
+                if (value !== 'administrador') {
+                  setSelectedAdminUnidades([]);
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -235,6 +264,38 @@ export function CreateUserDialog({ unidades, onSuccess }: CreateUserDialogProps)
               {getRoleDescription()}
             </p>
           </div>
+
+          {/* Seleção de múltiplas unidades para Administrador (apenas desenvolvedor pode ver) */}
+          {isCreatingAdmin && isDev && (
+            <div>
+              <label className="text-sm font-medium">Unidades do Administrador *</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Selecione as escolas que este administrador poderá gerenciar
+              </p>
+              <ScrollArea className="h-48 rounded-md border p-3">
+                <div className="space-y-2">
+                  {unidades.map((unidade) => (
+                    <div key={unidade.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`unidade-${unidade.id}`}
+                        checked={selectedAdminUnidades.includes(unidade.id)}
+                        onCheckedChange={() => toggleUnidade(unidade.id)}
+                      />
+                      <Label 
+                        htmlFor={`unidade-${unidade.id}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {unidade.nome}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedAdminUnidades.length} unidade(s) selecionada(s)
+              </p>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsOpen(false)}>

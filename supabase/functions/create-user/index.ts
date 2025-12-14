@@ -7,10 +7,11 @@ const corsHeaders = {
 };
 
 // Define role hierarchy - which roles can create which other roles
+// Diretores, Coordenadores e Secretários NÃO podem criar usuários
 const rolePermissions: Record<string, string[]> = {
   desenvolvedor: ['administrador', 'diretor', 'coordenador', 'professor', 'secretario', 'outro'],
   administrador: ['diretor', 'coordenador', 'professor', 'secretario', 'outro'],
-  diretor: ['coordenador', 'professor', 'secretario'],
+  diretor: [], // Diretor não pode criar usuários
   coordenador: [],
   professor: [],
   secretario: [],
@@ -73,7 +74,7 @@ serve(async (req) => {
     console.log('Current user role:', currentUserRole);
 
     // Parse request body
-    const { email, password, nome, role, unidade_id, matricula } = await req.json();
+    const { email, password, nome, role, unidade_id, matricula, admin_unidades } = await req.json();
 
     // Validate required fields
     if (!email || !password || !nome || !role) {
@@ -189,6 +190,23 @@ serve(async (req) => {
       if (roleUpdateError) {
         console.error('Error updating role:', roleUpdateError);
         // This is more critical, but user is already created
+      }
+    }
+
+    // If creating an administrator, add admin_unidades records
+    if (role === 'administrador' && admin_unidades && Array.isArray(admin_unidades) && admin_unidades.length > 0) {
+      const adminUnidadesRecords = admin_unidades.map((unidadeId: string) => ({
+        admin_id: newUserId,
+        unidade_id: unidadeId,
+      }));
+
+      const { error: adminUnidadesError } = await supabaseAdmin
+        .from('admin_unidades')
+        .insert(adminUnidadesRecords);
+
+      if (adminUnidadesError) {
+        console.error('Error creating admin_unidades:', adminUnidadesError);
+        // Don't fail, admin is already created
       }
     }
 

@@ -74,23 +74,32 @@ const App = () => (
                 
                 {/* Common routes */}
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/qrcode" element={<ProtectedRoute allowedRoles={['professor']}><QRCodePage /></ProtectedRoute>} />
+                <Route path="/qrcode" element={<ProtectedRoute allowedRoles={['professor', 'outro']}><QRCodePage /></ProtectedRoute>} />
                 <Route path="/registro" element={<ProtectedRoute><Registro /></ProtectedRoute>} />
                 <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
                 <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
                 <Route path="/justificativas" element={<ProtectedRoute><Justificativas /></ProtectedRoute>} />
                 
-                {/* Director, Coordinator, Secretary routes */}
-                <Route path="/leitor" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'secretario', 'administrador', 'desenvolvedor']}><LeitorQRCode /></ProtectedRoute>} />
-                <Route path="/escalas" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'administrador', 'desenvolvedor']}><Escalas /></ProtectedRoute>} />
+                {/* Director routes - only director can read QR codes */}
+                <Route path="/leitor" element={<ProtectedRoute allowedRoles={['diretor', 'desenvolvedor']}><LeitorQRCode /></ProtectedRoute>} />
+                
+                {/* Escalas - only admin and developer */}
+                <Route path="/escalas" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Escalas /></ProtectedRoute>} />
+                
+                {/* Calendar - director, admin and developer */}
                 <Route path="/calendario" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Calendario /></ProtectedRoute>} />
-                <Route path="/funcionarios" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'administrador', 'desenvolvedor']}><Funcionarios /></ProtectedRoute>} />
+                
+                {/* Funcionarios - viewing only for director, coordinator, secretary */}
+                <Route path="/funcionarios" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'secretario', 'administrador', 'desenvolvedor']}><Funcionarios /></ProtectedRoute>} />
+                
+                {/* Reports - filtered by unit for director, coordinator, secretary */}
                 <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'secretario', 'administrador', 'desenvolvedor']}><Relatorios /></ProtectedRoute>} />
+                
                 <Route path="/aprovacoes" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Aprovacoes /></ProtectedRoute>} />
                 <Route path="/unidades" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Unidades /></ProtectedRoute>} />
                 
-                {/* Admin, Developer and Director routes */}
-                <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor', 'diretor']}><Usuarios /></ProtectedRoute>} />
+                {/* Admin and Developer routes - director cannot add users */}
+                <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Usuarios /></ProtectedRoute>} />
                 <Route path="/dispositivos" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Dispositivos /></ProtectedRoute>} />
                 <Route path="/seguranca" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Seguranca /></ProtectedRoute>} />
                 
