@@ -15,6 +15,13 @@ import {
   CheckCircle2,
   AlertTriangle,
   Trash2,
+  UserCheck,
+  ClipboardList,
+  Eye,
+  Utensils,
+  Brush,
+  UserCog,
+  Keyboard,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -31,7 +38,14 @@ import {
 interface SeedResult {
   administradores: number;
   diretores: number;
+  coordenadores: number;
+  secretarios: number;
   professores: number;
+  vigias: number;
+  zeladoras: number;
+  merendeiras: number;
+  assistentes: number;
+  digitadores: number;
   unidades: number;
   total: number;
 }
@@ -40,7 +54,14 @@ interface SeedConfig {
   unidades: number;
   administradores: number;
   diretores: number;
+  coordenadores: number;
+  secretarios: number;
   professores: number;
+  vigias: number;
+  zeladoras: number;
+  merendeiras: number;
+  assistentes: number;
+  digitadores: number;
 }
 
 export default function SeedData() {
@@ -58,17 +79,41 @@ export default function SeedData() {
     unidades: 50,
     administradores: 20,
     diretores: 50,
+    coordenadores: 30,
+    secretarios: 30,
     professores: 100,
+    vigias: 30,
+    zeladoras: 30,
+    merendeiras: 30,
+    assistentes: 30,
+    digitadores: 30,
   };
   
   const [config, setConfig] = useState<SeedConfig>({
     unidades: 10,
     administradores: 5,
     diretores: 10,
+    coordenadores: 5,
+    secretarios: 5,
     professores: 50,
+    vigias: 5,
+    zeladoras: 5,
+    merendeiras: 5,
+    assistentes: 5,
+    digitadores: 5,
   });
 
-  const totalUsuarios = config.administradores + config.diretores + config.professores;
+  const totalUsuarios = 
+    config.administradores + 
+    config.diretores + 
+    config.coordenadores + 
+    config.secretarios + 
+    config.professores + 
+    config.vigias + 
+    config.zeladoras + 
+    config.merendeiras + 
+    config.assistentes + 
+    config.digitadores;
 
   const handleConfigChange = (field: keyof SeedConfig, value: string) => {
     const numValue = parseInt(value) || 0;
@@ -91,13 +136,19 @@ export default function SeedData() {
         duration: 5000,
       });
 
-      // Call the edge function with clearExisting=true and zero counts
       const { data, error: fnError } = await supabase.functions.invoke('seed-demo-data', {
         body: { 
           unidades: 0,
           administradores: 0,
           diretores: 0,
+          coordenadores: 0,
+          secretarios: 0,
           professores: 0,
+          vigias: 0,
+          zeladoras: 0,
+          merendeiras: 0,
+          assistentes: 0,
+          digitadores: 0,
           clearExisting: true 
         }
       });
@@ -177,9 +228,23 @@ export default function SeedData() {
     );
   }
 
+  const configFields = [
+    { key: 'unidades', label: 'Unidades/Escolas', icon: Building, color: 'text-primary' },
+    { key: 'administradores', label: 'Administradores', icon: Shield, color: 'text-warning' },
+    { key: 'diretores', label: 'Diretores', icon: Building, color: 'text-secondary' },
+    { key: 'coordenadores', label: 'Coordenadores', icon: UserCheck, color: 'text-info' },
+    { key: 'secretarios', label: 'Secretários', icon: ClipboardList, color: 'text-success' },
+    { key: 'professores', label: 'Professores', icon: Users, color: 'text-primary' },
+    { key: 'vigias', label: 'Vigias', icon: Eye, color: 'text-orange-500' },
+    { key: 'zeladoras', label: 'Zeladoras', icon: Brush, color: 'text-pink-500' },
+    { key: 'merendeiras', label: 'Merendeiras', icon: Utensils, color: 'text-amber-500' },
+    { key: 'assistentes', label: 'Assistentes', icon: UserCog, color: 'text-cyan-500' },
+    { key: 'digitadores', label: 'Digitadores', icon: Keyboard, color: 'text-violet-500' },
+  ] as const;
+
   return (
     <MainLayout>
-      <div className="space-y-8 max-w-4xl mx-auto">
+      <div className="space-y-8 max-w-6xl mx-auto">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">
             Gerador de Dados de Teste
@@ -191,7 +256,7 @@ export default function SeedData() {
 
         {/* Botão para limpar todos os dados */}
         <div className="card-elevated p-6 border-2 border-destructive/20">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-destructive/10 rounded-xl">
                 <Trash2 className="w-8 h-8 text-destructive" />
@@ -242,74 +307,25 @@ export default function SeedData() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="space-y-2">
-              <Label htmlFor="unidades" className="flex items-center gap-2 text-sm">
-                <Building className="w-4 h-4 text-primary" />
-                Unidades/Escolas
-              </Label>
-              <Input
-                id="unidades"
-                type="number"
-                min={0}
-                max={MAX_LIMITS.unidades}
-                value={config.unidades}
-                onChange={(e) => handleConfigChange('unidades', e.target.value)}
-                className="text-center text-lg font-bold"
-              />
-              <p className="text-xs text-muted-foreground text-center">máx: {MAX_LIMITS.unidades}</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="administradores" className="flex items-center gap-2 text-sm">
-                <Shield className="w-4 h-4 text-warning" />
-                Administradores
-              </Label>
-              <Input
-                id="administradores"
-                type="number"
-                min={0}
-                max={MAX_LIMITS.administradores}
-                value={config.administradores}
-                onChange={(e) => handleConfigChange('administradores', e.target.value)}
-                className="text-center text-lg font-bold"
-              />
-              <p className="text-xs text-muted-foreground text-center">máx: {MAX_LIMITS.administradores}</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="diretores" className="flex items-center gap-2 text-sm">
-                <Building className="w-4 h-4 text-secondary" />
-                Diretores
-              </Label>
-              <Input
-                id="diretores"
-                type="number"
-                min={0}
-                max={MAX_LIMITS.diretores}
-                value={config.diretores}
-                onChange={(e) => handleConfigChange('diretores', e.target.value)}
-                className="text-center text-lg font-bold"
-              />
-              <p className="text-xs text-muted-foreground text-center">máx: {MAX_LIMITS.diretores}</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="professores" className="flex items-center gap-2 text-sm">
-                <Users className="w-4 h-4 text-primary" />
-                Professores
-              </Label>
-              <Input
-                id="professores"
-                type="number"
-                min={0}
-                max={MAX_LIMITS.professores}
-                value={config.professores}
-                onChange={(e) => handleConfigChange('professores', e.target.value)}
-                className="text-center text-lg font-bold"
-              />
-              <p className="text-xs text-muted-foreground text-center">máx: {MAX_LIMITS.professores}</p>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
+            {configFields.map(({ key, label, icon: Icon, color }) => (
+              <div key={key} className="space-y-2">
+                <Label htmlFor={key} className="flex items-center gap-2 text-sm">
+                  <Icon className={`w-4 h-4 ${color}`} />
+                  <span className="truncate">{label}</span>
+                </Label>
+                <Input
+                  id={key}
+                  type="number"
+                  min={0}
+                  max={MAX_LIMITS[key]}
+                  value={config[key]}
+                  onChange={(e) => handleConfigChange(key, e.target.value)}
+                  className="text-center text-lg font-bold"
+                />
+                <p className="text-xs text-muted-foreground text-center">máx: {MAX_LIMITS[key]}</p>
+              </div>
+            ))}
           </div>
 
           <div className="p-4 bg-muted/50 rounded-lg mb-6">
@@ -361,9 +377,9 @@ export default function SeedData() {
             <div className="p-4 bg-success/10 border border-success/20 rounded-lg mb-6">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
-                <div>
+                <div className="flex-1">
                   <p className="font-medium text-success">Dados criados com sucesso!</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-3">
                     <div>
                       <p className="text-lg font-bold text-foreground">{result.unidades}</p>
                       <p className="text-xs text-muted-foreground">Unidades</p>
@@ -377,8 +393,36 @@ export default function SeedData() {
                       <p className="text-xs text-muted-foreground">Diretores</p>
                     </div>
                     <div>
+                      <p className="text-lg font-bold text-foreground">{result.coordenadores}</p>
+                      <p className="text-xs text-muted-foreground">Coordenadores</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-foreground">{result.secretarios}</p>
+                      <p className="text-xs text-muted-foreground">Secretários</p>
+                    </div>
+                    <div>
                       <p className="text-lg font-bold text-foreground">{result.professores}</p>
                       <p className="text-xs text-muted-foreground">Professores</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-foreground">{result.vigias}</p>
+                      <p className="text-xs text-muted-foreground">Vigias</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-foreground">{result.zeladoras}</p>
+                      <p className="text-xs text-muted-foreground">Zeladoras</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-foreground">{result.merendeiras}</p>
+                      <p className="text-xs text-muted-foreground">Merendeiras</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-foreground">{result.assistentes}</p>
+                      <p className="text-xs text-muted-foreground">Assistentes</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-foreground">{result.digitadores}</p>
+                      <p className="text-xs text-muted-foreground">Digitadores</p>
                     </div>
                   </div>
                   <p className="text-sm font-medium text-foreground mt-3">
@@ -421,21 +465,30 @@ export default function SeedData() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Geração de Dados</AlertDialogTitle>
-            <AlertDialogDescription>
-              {clearExisting && (
-                <p className="text-destructive font-medium mb-2">
-                  ⚠️ Os dados de teste existentes serão removidos primeiro!
-                </p>
-              )}
-              Você está prestes a criar:
-              <ul className="mt-2 space-y-1">
-                <li>• {config.unidades} unidades</li>
-                <li>• {config.administradores} administradores</li>
-                <li>• {config.diretores} diretores</li>
-                <li>• {config.professores} professores</li>
-              </ul>
-              <p className="mt-2">Total: {config.unidades + totalUsuarios} registros</p>
-              <p className="mt-2 font-medium">Deseja continuar?</p>
+            <AlertDialogDescription asChild>
+              <div>
+                {clearExisting && (
+                  <p className="text-destructive font-medium mb-2">
+                    ⚠️ Os dados de teste existentes serão removidos primeiro!
+                  </p>
+                )}
+                <p>Você está prestes a criar:</p>
+                <ul className="mt-2 space-y-1">
+                  <li>• {config.unidades} unidades</li>
+                  <li>• {config.administradores} administradores</li>
+                  <li>• {config.diretores} diretores</li>
+                  <li>• {config.coordenadores} coordenadores</li>
+                  <li>• {config.secretarios} secretários</li>
+                  <li>• {config.professores} professores</li>
+                  <li>• {config.vigias} vigias</li>
+                  <li>• {config.zeladoras} zeladoras</li>
+                  <li>• {config.merendeiras} merendeiras</li>
+                  <li>• {config.assistentes} assistentes</li>
+                  <li>• {config.digitadores} digitadores</li>
+                </ul>
+                <p className="mt-2">Total: {config.unidades + totalUsuarios} registros</p>
+                <p className="mt-2 font-medium">Deseja continuar?</p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -451,20 +504,22 @@ export default function SeedData() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-destructive">Confirmar Limpeza Total</AlertDialogTitle>
-            <AlertDialogDescription>
-              <p className="text-destructive font-medium mb-2">
-                ⚠️ Esta ação é irreversível!
-              </p>
-              <p>
-                Todos os dados de teste serão permanentemente removidos:
-              </p>
-              <ul className="mt-2 space-y-1">
-                <li>• Todos os usuários de teste (professores, diretores, administradores)</li>
-                <li>• Todas as unidades/escolas de teste</li>
-              </ul>
-              <p className="mt-2 font-medium">
-                Seu usuário atual será mantido. O Dashboard será atualizado automaticamente.
-              </p>
+            <AlertDialogDescription asChild>
+              <div>
+                <p className="text-destructive font-medium mb-2">
+                  ⚠️ Esta ação é irreversível!
+                </p>
+                <p>
+                  Todos os dados de teste serão permanentemente removidos:
+                </p>
+                <ul className="mt-2 space-y-1">
+                  <li>• Todos os usuários de teste (todos os cargos)</li>
+                  <li>• Todas as unidades/escolas de teste</li>
+                </ul>
+                <p className="mt-2 font-medium">
+                  Seu usuário atual será mantido. O Dashboard será atualizado automaticamente.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -55,7 +55,8 @@ function generateEmail(name: string, index: number, role: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, '.');
   const random = Math.floor(Math.random() * 10000);
-  return `${cleanName}.${index}.${random}@${role === 'professor' ? 'prof' : role}.edu.br`;
+  const domain = role === 'professor' ? 'prof' : role;
+  return `${cleanName}.${index}.${random}@${domain}.edu.br`;
 }
 
 function generateMatricula(role: string, index: number): string {
@@ -63,6 +64,13 @@ function generateMatricula(role: string, index: number): string {
     professor: 'PROF',
     diretor: 'DIR',
     administrador: 'ADM',
+    coordenador: 'COORD',
+    secretario: 'SEC',
+    vigia: 'VIG',
+    zeladora: 'ZEL',
+    merendeira: 'MER',
+    assistente: 'ASS',
+    digitador: 'DIG',
   };
   return `${prefixes[role] || 'USR'}${String(index).padStart(5, '0')}`;
 }
@@ -71,13 +79,27 @@ interface SeedConfig {
   unidades: number;
   administradores: number;
   diretores: number;
+  coordenadores: number;
+  secretarios: number;
   professores: number;
+  vigias: number;
+  zeladoras: number;
+  merendeiras: number;
+  assistentes: number;
+  digitadores: number;
 }
 
 interface SeedResults {
   administradores: number;
   diretores: number;
+  coordenadores: number;
+  secretarios: number;
   professores: number;
+  vigias: number;
+  zeladoras: number;
+  merendeiras: number;
+  assistentes: number;
+  digitadores: number;
   unidades: number;
   deletedUsers: number;
   deletedUnits: number;
@@ -89,7 +111,42 @@ const MAX_LIMITS = {
   unidades: 50,
   administradores: 20,
   diretores: 50,
+  coordenadores: 30,
+  secretarios: 30,
   professores: 100,
+  vigias: 30,
+  zeladoras: 30,
+  merendeiras: 30,
+  assistentes: 30,
+  digitadores: 30,
+};
+
+// Role mapping - these roles use 'outro' as base role
+const ROLE_EMAIL_PATTERNS = [
+  '@prof.edu.br',
+  '@diretor.edu.br', 
+  '@administrador.edu.br',
+  '@coordenador.edu.br',
+  '@secretario.edu.br',
+  '@vigia.edu.br',
+  '@zeladora.edu.br',
+  '@merendeira.edu.br',
+  '@assistente.edu.br',
+  '@digitador.edu.br',
+];
+
+// Map email domain to actual role in database
+const EMAIL_TO_ROLE: Record<string, string> = {
+  'prof': 'professor',
+  'diretor': 'diretor',
+  'administrador': 'administrador',
+  'coordenador': 'coordenador',
+  'secretario': 'secretario',
+  'vigia': 'outro',
+  'zeladora': 'outro',
+  'merendeira': 'outro',
+  'assistente': 'outro',
+  'digitador': 'outro',
 };
 
 serve(async (req) => {
@@ -111,7 +168,14 @@ serve(async (req) => {
       unidades: 10,
       administradores: 5,
       diretores: 10,
+      coordenadores: 5,
+      secretarios: 5,
       professores: 50,
+      vigias: 5,
+      zeladoras: 5,
+      merendeiras: 5,
+      assistentes: 5,
+      digitadores: 5,
     };
     let clearExisting = false;
 
@@ -122,7 +186,14 @@ serve(async (req) => {
           unidades: Math.min(Math.max(0, body.unidades || 0), MAX_LIMITS.unidades),
           administradores: Math.min(Math.max(0, body.administradores || 0), MAX_LIMITS.administradores),
           diretores: Math.min(Math.max(0, body.diretores || 0), MAX_LIMITS.diretores),
+          coordenadores: Math.min(Math.max(0, body.coordenadores || 0), MAX_LIMITS.coordenadores),
+          secretarios: Math.min(Math.max(0, body.secretarios || 0), MAX_LIMITS.secretarios),
           professores: Math.min(Math.max(0, body.professores || 0), MAX_LIMITS.professores),
+          vigias: Math.min(Math.max(0, body.vigias || 0), MAX_LIMITS.vigias),
+          zeladoras: Math.min(Math.max(0, body.zeladoras || 0), MAX_LIMITS.zeladoras),
+          merendeiras: Math.min(Math.max(0, body.merendeiras || 0), MAX_LIMITS.merendeiras),
+          assistentes: Math.min(Math.max(0, body.assistentes || 0), MAX_LIMITS.assistentes),
+          digitadores: Math.min(Math.max(0, body.digitadores || 0), MAX_LIMITS.digitadores),
         };
         clearExisting = body.clearExisting === true;
       }
@@ -162,7 +233,14 @@ serve(async (req) => {
     const results: SeedResults = {
       administradores: 0,
       diretores: 0,
+      coordenadores: 0,
+      secretarios: 0,
       professores: 0,
+      vigias: 0,
+      zeladoras: 0,
+      merendeiras: 0,
+      assistentes: 0,
+      digitadores: 0,
       unidades: 0,
       deletedUsers: 0,
       deletedUnits: 0,
@@ -176,10 +254,7 @@ serve(async (req) => {
       console.log('Clearing existing demo data...');
       
       // Get ALL profiles that have demo email patterns (excluding the current user)
-      // Use multiple queries to get all demo users
-      const demoEmailPatterns = ['@prof.edu.br', '@diretor.edu.br', '@administrador.edu.br'];
-      
-      for (const pattern of demoEmailPatterns) {
+      for (const pattern of ROLE_EMAIL_PATTERNS) {
         let hasMore = true;
         let offset = 0;
         const batchSize = 100;
@@ -229,7 +304,6 @@ serve(async (req) => {
       console.log(`Deleted ${results.deletedUsers} demo users`);
 
       // Delete ALL demo units - units that don't have a real director assigned
-      // or units created by seed (no diretor_id)
       let hasMoreUnits = true;
       let unitOffset = 0;
       
@@ -260,6 +334,7 @@ serve(async (req) => {
             await supabaseAdmin.from('escalas_trabalho').delete().eq('unidade_id', unit.id);
             await supabaseAdmin.from('dispositivos').delete().eq('unidade_id', unit.id);
             await supabaseAdmin.from('school_events').delete().eq('unidade_id', unit.id);
+            await supabaseAdmin.from('justificativas').delete().eq('unidade_id', unit.id);
             
             // Then delete the unit
             const { error: deleteUnitError } = await supabaseAdmin
@@ -280,7 +355,6 @@ serve(async (req) => {
         if (demoUnits.length < 100) {
           hasMoreUnits = false;
         }
-        // Don't increment offset since we're deleting records
       }
       
       console.log(`Deleted ${results.deletedUnits} demo units`);
@@ -331,21 +405,31 @@ serve(async (req) => {
       );
     }
 
-    // Step 2: Get current counts
-    const { count: admCount } = await supabaseAdmin.from('user_roles').select('*', { count: 'exact', head: true }).eq('role', 'administrador');
-    const { count: dirCount } = await supabaseAdmin.from('user_roles').select('*', { count: 'exact', head: true }).eq('role', 'diretor');
-    const { count: profCount } = await supabaseAdmin.from('user_roles').select('*', { count: 'exact', head: true }).eq('role', 'professor');
-    
-    const existingAdm = admCount || 0;
-    const existingDir = dirCount || 0;
-    const existingProf = profCount || 0;
-
-    // Step 3: Create Admins
-    if (config.administradores > 0) {
-      console.log(`Creating ${config.administradores} administrators...`);
-      for (let i = 1; i <= config.administradores; i++) {
+    // Helper function to create users
+    async function createUsers(
+      roleKey: keyof SeedResults,
+      roleName: string,
+      dbRole: string,
+      count: number,
+      assignToUnit: boolean = false
+    ) {
+      if (count <= 0) return;
+      
+      console.log(`Creating ${count} ${roleName}...`);
+      
+      const { count: existingCount } = await supabaseAdmin
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', dbRole);
+      
+      const existing = existingCount || 0;
+      
+      for (let i = 1; i <= count; i++) {
         const nome = generateName();
-        const email = generateEmail(nome, existingAdm + i, 'administrador');
+        const email = generateEmail(nome, existing + i, roleName);
+        const unidadeId = assignToUnit && unidadeIds.length > 0 
+          ? unidadeIds[(i - 1) % unidadeIds.length] 
+          : null;
         
         try {
           const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -357,107 +441,63 @@ serve(async (req) => {
 
           if (createError) {
             if (!createError.message.includes('already been registered')) {
-              results.errors.push(`Admin ${i}: ${createError.message}`);
+              results.errors.push(`${roleName} ${i}: ${createError.message}`);
             }
             continue;
           }
 
           if (authData.user) {
-            await supabaseAdmin.from('profiles').update({ 
-              matricula: generateMatricula('administrador', existingAdm + i) 
-            }).eq('id', authData.user.id);
-            
-            await supabaseAdmin.from('user_roles').update({ role: 'administrador' }).eq('user_id', authData.user.id);
-            results.administradores++;
-          }
-        } catch (e) {
-          results.errors.push(`Admin ${i}: ${e}`);
-        }
-      }
-      console.log(`Created ${results.administradores} administrators`);
-    }
-
-    // Step 4: Create Directors
-    if (config.diretores > 0 && unidadeIds.length > 0) {
-      console.log(`Creating ${config.diretores} directors...`);
-      for (let i = 1; i <= config.diretores; i++) {
-        const nome = generateName();
-        const email = generateEmail(nome, existingDir + i, 'diretor');
-        const unidadeId = unidadeIds[(i - 1) % unidadeIds.length];
-        
-        try {
-          const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-            email,
-            password: defaultPassword,
-            email_confirm: true,
-            user_metadata: { nome }
-          });
-
-          if (createError) {
-            if (!createError.message.includes('already been registered')) {
-              results.errors.push(`Diretor ${i}: ${createError.message}`);
+            const updateData: Record<string, unknown> = { 
+              matricula: generateMatricula(roleName, existing + i)
+            };
+            if (unidadeId) {
+              updateData.unidade_id = unidadeId;
             }
-            continue;
-          }
-
-          if (authData.user) {
-            await supabaseAdmin.from('profiles').update({ 
-              matricula: generateMatricula('diretor', existingDir + i),
-              unidade_id: unidadeId
-            }).eq('id', authData.user.id);
             
-            await supabaseAdmin.from('user_roles').update({ role: 'diretor' }).eq('user_id', authData.user.id);
-            results.diretores++;
-          }
-        } catch (e) {
-          results.errors.push(`Diretor ${i}: ${e}`);
-        }
-      }
-      console.log(`Created ${results.diretores} directors`);
-    }
-
-    // Step 5: Create Professors
-    if (config.professores > 0 && unidadeIds.length > 0) {
-      console.log(`Creating ${config.professores} professors...`);
-      for (let i = 1; i <= config.professores; i++) {
-        const nome = generateName();
-        const email = generateEmail(nome, existingProf + i, 'professor');
-        const unidadeId = unidadeIds[(i - 1) % unidadeIds.length];
-        
-        try {
-          const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-            email,
-            password: defaultPassword,
-            email_confirm: true,
-            user_metadata: { nome }
-          });
-
-          if (createError) {
-            if (!createError.message.includes('already been registered')) {
-              results.errors.push(`Prof ${i}: ${createError.message}`);
+            await supabaseAdmin.from('profiles').update(updateData).eq('id', authData.user.id);
+            
+            // Update role if different from default (professor)
+            if (dbRole !== 'professor') {
+              await supabaseAdmin.from('user_roles').update({ role: dbRole }).eq('user_id', authData.user.id);
             }
-            continue;
-          }
-
-          if (authData.user) {
-            await supabaseAdmin.from('profiles').update({ 
-              matricula: generateMatricula('professor', existingProf + i),
-              unidade_id: unidadeId
-            }).eq('id', authData.user.id);
             
-            results.professores++;
+            (results[roleKey] as number)++;
           }
         } catch (e) {
-          results.errors.push(`Prof ${i}: ${e}`);
+          results.errors.push(`${roleName} ${i}: ${e}`);
         }
 
         // Log progress
         if (i % 20 === 0) {
-          console.log(`Created ${i}/${config.professores} professors...`);
+          console.log(`Created ${i}/${count} ${roleName}...`);
         }
       }
-      console.log(`Created ${results.professores} professors`);
+      console.log(`Created ${results[roleKey]} ${roleName}`);
     }
+
+    // Create all user types
+    await createUsers('administradores', 'administrador', 'administrador', config.administradores, false);
+    await createUsers('diretores', 'diretor', 'diretor', config.diretores, true);
+    await createUsers('coordenadores', 'coordenador', 'coordenador', config.coordenadores, true);
+    await createUsers('secretarios', 'secretario', 'secretario', config.secretarios, true);
+    await createUsers('professores', 'professor', 'professor', config.professores, true);
+    await createUsers('vigias', 'vigia', 'outro', config.vigias, true);
+    await createUsers('zeladoras', 'zeladora', 'outro', config.zeladoras, true);
+    await createUsers('merendeiras', 'merendeira', 'outro', config.merendeiras, true);
+    await createUsers('assistentes', 'assistente', 'outro', config.assistentes, true);
+    await createUsers('digitadores', 'digitador', 'outro', config.digitadores, true);
+
+    const total = results.unidades + 
+      results.administradores + 
+      results.diretores + 
+      results.coordenadores +
+      results.secretarios +
+      results.professores +
+      results.vigias +
+      results.zeladoras +
+      results.merendeiras +
+      results.assistentes +
+      results.digitadores;
 
     console.log('=== SEED COMPLETED ===');
     console.log(JSON.stringify(results, null, 2));
@@ -469,23 +509,30 @@ serve(async (req) => {
         created: {
           administradores: results.administradores,
           diretores: results.diretores,
+          coordenadores: results.coordenadores,
+          secretarios: results.secretarios,
           professores: results.professores,
+          vigias: results.vigias,
+          zeladoras: results.zeladoras,
+          merendeiras: results.merendeiras,
+          assistentes: results.assistentes,
+          digitadores: results.digitadores,
           unidades: results.unidades,
-          total: results.administradores + results.diretores + results.professores + results.unidades
+          total
         },
         deleted: {
           users: results.deletedUsers,
-          units: results.deletedUnits
+          units: results.deletedUnits,
         },
-        limits: MAX_LIMITS
+        errors: results.errors
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Seed error:', error);
+    const message = error instanceof Error ? error.message : 'Erro interno';
     return new Response(
-      JSON.stringify({ error: 'Erro interno: ' + (error instanceof Error ? error.message : 'Unknown') }),
+      JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

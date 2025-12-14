@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowRight, Play, Download, Shield, QrCode, BarChart3, Users, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { ArrowRight, Play, Download, Shield, QrCode, BarChart3, Users, CheckCircle, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import logoImage from '@/assets/logo.png';
@@ -32,6 +33,28 @@ const features = [
 const Index = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [stats, setStats] = useState({ escolas: 0, usuarios: 0, leituras: 0 });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [escolasRes, usuariosRes, leiturasRes] = await Promise.all([
+          supabase.from('unidades').select('id', { count: 'exact', head: true }),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
+          supabase.from('registros_frequencia').select('id', { count: 'exact', head: true }).eq('data_registro', new Date().toISOString().split('T')[0])
+        ]);
+        
+        setStats({
+          escolas: escolasRes.count || 0,
+          usuarios: usuariosRes.count || 0,
+          leituras: leiturasRes.count || 0
+        });
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error);
+      }
+    };
+    fetchStats();
+  }, []);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -103,9 +126,9 @@ const Index = () => {
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold text-foreground leading-tight">
-              Controle de Frequência{' '}
+              Gestão Escolar{' '}
               <span className="text-primary">
-                Moderno e Eficiente
+                Ágil
               </span>
             </h1>
             
@@ -113,6 +136,25 @@ const Index = () => {
               Gerencie a presença de professores e colaboradores com tecnologia QR Code. 
               Simples, rápido e totalmente seguro.
             </p>
+
+            {/* Stats Section */}
+            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mt-8">
+              <div className="bg-card border border-border rounded-xl p-4">
+                <Building className="w-5 h-5 text-primary mx-auto mb-2" />
+                <p className="text-2xl font-display font-bold text-foreground">{stats.escolas}</p>
+                <p className="text-xs text-muted-foreground">Escolas</p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <Users className="w-5 h-5 text-primary mx-auto mb-2" />
+                <p className="text-2xl font-display font-bold text-foreground">{stats.usuarios}</p>
+                <p className="text-xs text-muted-foreground">Usuários</p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <BarChart3 className="w-5 h-5 text-primary mx-auto mb-2" />
+                <p className="text-2xl font-display font-bold text-foreground">{stats.leituras}</p>
+                <p className="text-xs text-muted-foreground">Leituras/dia</p>
+              </div>
+            </div>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
               <Link to="/login" className="w-full sm:w-auto">
