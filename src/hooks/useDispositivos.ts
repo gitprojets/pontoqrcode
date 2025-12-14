@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -28,7 +28,7 @@ export function useDispositivos() {
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchDispositivos = async () => {
+  const fetchDispositivos = useCallback(async () => {
     try {
       setIsLoading(true);
       // Use the safe view that excludes api_key for security
@@ -47,35 +47,38 @@ export function useDispositivos() {
         `)
         .order('nome');
       
+      if (error) throw error;
+      
       // Fetch unidade names separately since views don't support joins directly
       if (data && data.length > 0) {
         const unidadeIds = [...new Set(data.filter(d => d.unidade_id).map(d => d.unidade_id))];
-        const { data: unidades } = await supabase
-          .from('unidades')
-          .select('id, nome')
-          .in('id', unidadeIds);
-        
-        const unidadeMap = new Map(unidades?.map(u => [u.id, u.nome]) || []);
-        
-        const dataWithUnidades = data.map(d => ({
-          ...d,
-          unidade: d.unidade_id ? { nome: unidadeMap.get(d.unidade_id) || null } : null
-        }));
-        
-        setDispositivos(dataWithUnidades as Dispositivo[]);
-        return;
+        if (unidadeIds.length > 0) {
+          const { data: unidades } = await supabase
+            .from('unidades')
+            .select('id, nome')
+            .in('id', unidadeIds);
+          
+          const unidadeMap = new Map(unidades?.map(u => [u.id, u.nome]) || []);
+          
+          const dataWithUnidades = data.map(d => ({
+            ...d,
+            unidade: d.unidade_id ? { nome: unidadeMap.get(d.unidade_id) || null } : null
+          }));
+          
+          setDispositivos(dataWithUnidades as Dispositivo[]);
+        } else {
+          setDispositivos(data as Dispositivo[]);
+        }
+      } else {
+        setDispositivos([]);
       }
-
-      if (error) throw error;
-      
-      setDispositivos((data || []) as Dispositivo[]);
     } catch (error: any) {
       console.error('Erro ao carregar dispositivos:', error);
       toast.error('Erro ao carregar dispositivos');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const createDispositivo = async (input: DispositivoInput) => {
     try {
@@ -138,7 +141,19 @@ export function useDispositivos() {
 
   useEffect(() => {
     fetchDispositivos();
-  }, []);
+    
+    // Setup realtime subscription
+    const channel = supabase
+      .channel('dispositivos-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dispositivos' }, () => {
+        fetchDispositivos();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchDispositivos]);
 
   return {
     dispositivos,

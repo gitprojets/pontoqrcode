@@ -197,6 +197,21 @@ export function useUsuarios() {
 
   useEffect(() => {
     fetchUsuarios();
+    
+    // Setup realtime subscription
+    const channel = supabase
+      .channel('usuarios-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        fetchUsuarios();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_roles' }, () => {
+        fetchUsuarios();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchUsuarios]);
 
   return {
