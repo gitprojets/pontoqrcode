@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import logoImage from '@/assets/logo.png';
+import { ThemedLogo } from '@/components/ThemedLogo';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -96,7 +96,7 @@ export default function Login() {
         <div className="relative z-10 flex flex-col justify-center p-8 xl:p-12 text-sidebar-foreground">
           <div className="mb-8 xl:mb-12">
             <div className="flex items-center gap-4 mb-6 xl:mb-8">
-              <img src={logoImage} alt="FrequênciaQR" className="w-14 h-14 xl:w-16 xl:h-16 rounded-2xl" />
+              <ThemedLogo className="w-14 h-14 xl:w-16 xl:h-16 rounded-2xl" />
               <div>
                 <h1 className="text-2xl xl:text-3xl font-display font-bold">FrequênciaQR</h1>
                 <p className="text-sidebar-foreground/70 text-sm">Sistema de Frequência Escolar</p>
@@ -134,7 +134,7 @@ export default function Login() {
         <div className="w-full max-w-md animate-fade-in">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-6 justify-center">
-            <img src={logoImage} alt="FrequênciaQR" className="w-12 h-12 rounded-xl" />
+            <ThemedLogo className="w-12 h-12 rounded-xl" />
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">FrequênciaQR</h1>
             </div>
