@@ -136,35 +136,61 @@ export function useDashboardStats() {
           }));
         }
       } else if (role === 'administrador' || role === 'desenvolvedor') {
-        // Admin stats - system-wide
-        const { count: unidadesCount } = await supabase
+        // Admin stats - system-wide - fetch fresh data from database
+        const { count: unidadesCount, error: unidadesError } = await supabase
           .from('unidades')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'online');
 
-        const { count: usuariosCount } = await supabase
+        if (unidadesError) {
+          console.error('Error fetching unidades count:', unidadesError);
+        }
+
+        const { count: usuariosCount, error: usuariosError } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true });
 
-        const { count: leiturasCount } = await supabase
+        if (usuariosError) {
+          console.error('Error fetching usuarios count:', usuariosError);
+        }
+
+        const { count: leiturasCount, error: leiturasError } = await supabase
           .from('registros_frequencia')
           .select('*', { count: 'exact', head: true })
           .eq('data_registro', hoje);
 
-        const { data: dispositivos } = await supabase
-          .from('dispositivos')
+        if (leiturasError) {
+          console.error('Error fetching leituras count:', leiturasError);
+        }
+
+        // Use dispositivos_safe view to avoid exposing api_key
+        const { data: dispositivos, error: dispositivosError } = await supabase
+          .from('dispositivos_safe')
           .select('status');
+
+        if (dispositivosError) {
+          console.error('Error fetching dispositivos:', dispositivosError);
+        }
 
         const dispositivosOnline = dispositivos?.filter(d => d.status === 'online').length || 0;
 
-        setStats(prev => ({
-          ...prev,
+        setStats({
+          // Reset all stats with fresh data to avoid stale values
+          presencasMes: 0,
+          diasLetivos: 0,
+          atrasos: 0,
+          faltas: 0,
+          taxaPresenca: '0',
+          professoresPresentes: 0,
+          professoresEsperados: 0,
+          pendencias: 0,
+          taxaGeral: '0',
           unidadesAtivas: unidadesCount || 0,
           totalUsuarios: usuariosCount || 0,
           leiturasHoje: leiturasCount || 0,
           dispositivosOnline,
           dispositivosTotal: dispositivos?.length || 0,
-        }));
+        });
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);

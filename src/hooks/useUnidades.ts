@@ -96,6 +96,68 @@ export function useUnidades() {
 
   const deleteUnidade = async (id: string) => {
     try {
+      // First, check for profiles linked to this unit and clear their unidade_id
+      const { error: profilesError } = await supabase
+        .from('profiles')
+        .update({ unidade_id: null })
+        .eq('unidade_id', id);
+
+      if (profilesError) {
+        console.warn('Could not clear profiles unidade_id:', profilesError);
+        // Continue anyway - RLS may prevent this update for some users
+      }
+
+      // Clear diretor_id reference in the unit itself to avoid any issues
+      const { error: updateError } = await supabase
+        .from('unidades')
+        .update({ diretor_id: null })
+        .eq('id', id);
+
+      if (updateError) {
+        console.warn('Could not clear diretor_id:', updateError);
+      }
+
+      // Also clear escalas_trabalho linked to this unit
+      const { error: escalasError } = await supabase
+        .from('escalas_trabalho')
+        .delete()
+        .eq('unidade_id', id);
+
+      if (escalasError) {
+        console.warn('Could not delete escalas:', escalasError);
+      }
+
+      // Delete registros_frequencia linked to this unit
+      const { error: registrosError } = await supabase
+        .from('registros_frequencia')
+        .delete()
+        .eq('unidade_id', id);
+
+      if (registrosError) {
+        console.warn('Could not delete registros:', registrosError);
+      }
+
+      // Delete dispositivos linked to this unit
+      const { error: dispositivosError } = await supabase
+        .from('dispositivos')
+        .delete()
+        .eq('unidade_id', id);
+
+      if (dispositivosError) {
+        console.warn('Could not delete dispositivos:', dispositivosError);
+      }
+
+      // Delete school_events linked to this unit
+      const { error: eventsError } = await supabase
+        .from('school_events')
+        .delete()
+        .eq('unidade_id', id);
+
+      if (eventsError) {
+        console.warn('Could not delete school events:', eventsError);
+      }
+
+      // Now delete the unit
       const { error } = await supabase
         .from('unidades')
         .delete()

@@ -1,9 +1,11 @@
+import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { SchoolCalendar } from '@/components/calendar/SchoolCalendar';
 import { AttendanceHistory } from '@/components/attendance/AttendanceHistory';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { Button } from '@/components/ui/button';
 import {
   CheckCircle,
   Clock,
@@ -14,6 +16,7 @@ import {
   AlertTriangle,
   Building,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 
 function ProfessorDashboard() {
@@ -138,7 +141,12 @@ function DiretorDashboard() {
 }
 
 function AdminDashboard() {
-  const { stats, isLoading } = useDashboardStats();
+  const { stats, isLoading, refresh } = useDashboardStats();
+
+  // Refresh data when component mounts to ensure fresh data
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   if (isLoading) {
     return (
@@ -150,13 +158,19 @@ function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-display font-bold text-foreground">
-          Painel Administrativo
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Visão geral de todas as unidades
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-foreground">
+            Painel Administrativo
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Visão geral de todas as unidades
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={refresh} className="gap-2">
+          <RefreshCw className="w-4 h-4" />
+          Atualizar
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
