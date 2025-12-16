@@ -1,10 +1,66 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { Camera, CameraOff, CheckCircle, XCircle, AlertTriangle, User, Shield, Loader2 } from 'lucide-react';
+import { Camera, CameraOff, CheckCircle, XCircle, AlertTriangle, User, Shield, Loader2, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Feedback utilities for haptic and audio feedback
+const playFeedback = (type: 'success' | 'warning' | 'error') => {
+  // Vibration feedback (if supported)
+  if ('vibrate' in navigator) {
+    const patterns = {
+      success: [100, 50, 100], // Two short vibrations
+      warning: [200, 100, 200], // Two medium vibrations
+      error: [400], // One long vibration
+    };
+    navigator.vibrate(patterns[type]);
+  }
+
+  // Audio feedback using Web Audio API
+  try {
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Different tones for different feedback types
+    const tones = {
+      success: { frequency: 880, duration: 0.15, type: 'sine' as OscillatorType }, // High happy beep
+      warning: { frequency: 440, duration: 0.3, type: 'triangle' as OscillatorType }, // Medium warning tone
+      error: { frequency: 220, duration: 0.4, type: 'square' as OscillatorType }, // Low error buzz
+    };
+    
+    const tone = tones[type];
+    oscillator.type = tone.type;
+    oscillator.frequency.setValueAtTime(tone.frequency, audioContext.currentTime);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + tone.duration);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + tone.duration);
+    
+    // For success, add a second higher note
+    if (type === 'success') {
+      const oscillator2 = audioContext.createOscillator();
+      const gainNode2 = audioContext.createGain();
+      oscillator2.connect(gainNode2);
+      gainNode2.connect(audioContext.destination);
+      oscillator2.type = 'sine';
+      oscillator2.frequency.setValueAtTime(1320, audioContext.currentTime + 0.15); // Higher note
+      gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
+      gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      oscillator2.start(audioContext.currentTime + 0.15);
+      oscillator2.stop(audioContext.currentTime + 0.3);
+    }
+  } catch (e) {
+    console.log('Audio feedback not available:', e);
+  }
+};
 
 interface ScanResult {
   status: 'idle' | 'success' | 'error' | 'warning' | 'processing';
@@ -65,6 +121,7 @@ export function QRCodeScanner() {
       }
 
       if (data?.valid === false) {
+        playFeedback('error');
         setScanResult({
           status: 'error',
           message: data?.error || 'Token inválido',
@@ -89,6 +146,7 @@ export function QRCodeScanner() {
         await processLegacyPayload(payload);
       } catch (legacyError) {
         console.error('Legacy parsing also failed:', legacyError);
+        playFeedback('error');
         setScanResult({
           status: 'error',
           message: 'QR Code inválido ou corrompido',
@@ -113,6 +171,7 @@ export function QRCodeScanner() {
     const directorUnitId = profile?.unidade_id;
     
     if (!directorUnitId) {
+      playFeedback('error');
       setScanResult({
         status: 'error',
         message: 'Você não está vinculado a nenhuma unidade.',
@@ -122,6 +181,7 @@ export function QRCodeScanner() {
 
     // Check if professor belongs to same unit
     if (professor.unidade_id !== directorUnitId) {
+      playFeedback('warning');
       setScanResult({
         status: 'warning',
         message: 'Este professor não pertence à sua unidade.',
@@ -136,6 +196,7 @@ export function QRCodeScanner() {
   const processLegacyPayload = useCallback(async (payload: { id: string; m: string; t: number; n: string; e: number }) => {
     // Validate expiration
     if (Date.now() > payload.e) {
+      playFeedback('error');
       setScanResult({
         status: 'error',
         message: 'QR Code expirado. Peça ao professor para gerar um novo.',
@@ -145,6 +206,7 @@ export function QRCodeScanner() {
 
     // Validate timestamp (not too old)
     if (Date.now() - payload.t > 120000) {
+      playFeedback('error');
       setScanResult({
         status: 'error',
         message: 'QR Code muito antigo.',
@@ -160,6 +222,7 @@ export function QRCodeScanner() {
       .maybeSingle();
 
     if (profError || !professor) {
+      playFeedback('error');
       setScanResult({
         status: 'error',
         message: 'Professor não encontrado no sistema.',
@@ -170,6 +233,7 @@ export function QRCodeScanner() {
     const directorUnitId = profile?.unidade_id;
     
     if (!directorUnitId) {
+      playFeedback('error');
       setScanResult({
         status: 'error',
         message: 'Você não está vinculado a nenhuma unidade.',
@@ -178,6 +242,7 @@ export function QRCodeScanner() {
     }
 
     if (professor.unidade_id !== directorUnitId) {
+      playFeedback('warning');
       setScanResult({
         status: 'warning',
         message: 'Este professor não pertence à sua unidade.',
@@ -210,6 +275,7 @@ export function QRCodeScanner() {
 
     // Check if it's a day off
     if (escala?.is_folga) {
+      playFeedback('warning');
       setScanResult({
         status: 'warning',
         message: `${professor.nome} está de folga hoje.`,
@@ -251,6 +317,7 @@ export function QRCodeScanner() {
         if (error) throw error;
         status = 'saida';
       } else {
+        playFeedback('warning');
         setScanResult({
           status: 'warning',
           message: `${professor.nome} já tem entrada e saída registradas hoje.`,
@@ -283,6 +350,9 @@ export function QRCodeScanner() {
       status,
       timestamp: new Date(),
     }, ...prev.slice(0, 9)]);
+
+    // Play success feedback (warning sound for late arrivals)
+    playFeedback(status === 'atrasado' ? 'warning' : 'success');
 
     setScanResult({
       status: 'success',
