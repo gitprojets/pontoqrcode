@@ -41,7 +41,9 @@ const menuItems: Record<string, MenuItem[]> = {
   ],
   coordenador: [
     { icon: LayoutDashboard, label: 'Painel', path: '/dashboard' },
+    { icon: Clock, label: 'Escalas', path: '/escalas' },
     { icon: Users, label: 'Funcionários', path: '/funcionarios' },
+    { icon: FileText, label: 'Aprovações', path: '/aprovacoes' },
     { icon: ClipboardList, label: 'Relatórios', path: '/relatorios' },
     { icon: Headphones, label: 'Suporte', path: '/suporte' },
     { icon: Settings, label: 'Configurações', path: '/configuracoes' },
@@ -58,6 +60,7 @@ const menuItems: Record<string, MenuItem[]> = {
     { icon: ScanLine, label: 'Leitor QR Code', path: '/leitor' },
     { icon: Calendar, label: 'Calendário Escolar', path: '/calendario' },
     { icon: Users, label: 'Funcionários', path: '/funcionarios' },
+    { icon: FileText, label: 'Aprovações', path: '/aprovacoes' },
     { icon: Building, label: 'Minha Unidade', path: '/unidades' },
     { icon: ClipboardList, label: 'Relatórios', path: '/relatorios' },
     { icon: Headphones, label: 'Suporte', path: '/suporte' },

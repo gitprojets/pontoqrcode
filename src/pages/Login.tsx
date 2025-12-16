@@ -19,19 +19,21 @@ export default function Login() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [escolasRes, usuariosRes, leiturasRes] = await Promise.all([
+        // Using count queries that may fail silently if RLS blocks access
+        const [escolasRes, usuariosRes, leiturasRes] = await Promise.allSettled([
           supabase.from('unidades').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('registros_frequencia').select('id', { count: 'exact', head: true }).eq('data_registro', new Date().toISOString().split('T')[0])
         ]);
         
         setStats({
-          escolas: escolasRes.count || 0,
-          usuarios: usuariosRes.count || 0,
-          leituras: leiturasRes.count || 0
+          escolas: escolasRes.status === 'fulfilled' ? (escolasRes.value.count || 0) : 0,
+          usuarios: usuariosRes.status === 'fulfilled' ? (usuariosRes.value.count || 0) : 0,
+          leituras: leiturasRes.status === 'fulfilled' ? (leiturasRes.value.count || 0) : 0
         });
       } catch (error) {
-        console.error('Erro ao buscar estatísticas:', error);
+        // Silently fail - stats are not critical for login
+        console.warn('Could not fetch login stats:', error);
       }
     };
     fetchStats();

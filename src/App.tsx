@@ -87,8 +87,8 @@ const App = () => (
                 {/* Registros do dia - admin can view daily records */}
                 <Route path="/registros-dia" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><RegistrosDia /></ProtectedRoute>} />
                 
-                {/* Escalas - only admin and developer */}
-                <Route path="/escalas" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Escalas /></ProtectedRoute>} />
+                {/* Escalas - coordenador, admin and developer */}
+                <Route path="/escalas" element={<ProtectedRoute allowedRoles={['coordenador', 'administrador', 'desenvolvedor']}><Escalas /></ProtectedRoute>} />
                 
                 {/* Calendar - director, admin and developer */}
                 <Route path="/calendario" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Calendario /></ProtectedRoute>} />
@@ -99,7 +99,7 @@ const App = () => (
                 {/* Reports - filtered by unit for director, coordinator, secretary */}
                 <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'secretario', 'administrador', 'desenvolvedor']}><Relatorios /></ProtectedRoute>} />
                 
-                <Route path="/aprovacoes" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Aprovacoes /></ProtectedRoute>} />
+                <Route path="/aprovacoes" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'administrador', 'desenvolvedor']}><Aprovacoes /></ProtectedRoute>} />
                 <Route path="/unidades" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Unidades /></ProtectedRoute>} />
                 
                 {/* Admin and Developer routes - director cannot add users */}
