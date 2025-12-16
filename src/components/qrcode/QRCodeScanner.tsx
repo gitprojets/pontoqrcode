@@ -34,9 +34,22 @@ export function QRCodeScanner() {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const { profile } = useAuth();
+  
+  // Refs for synchronous checks to prevent race conditions
+  const processingRef = useRef(false);
+  const lastProcessedTokenRef = useRef<string | null>(null);
+  const cooldownRef = useRef<NodeJS.Timeout | null>(null);
 
   const processQRCode = useCallback(async (decodedText: string) => {
-    if (isProcessing) return;
+    // Synchronous check using ref to prevent race conditions
+    if (processingRef.current) return;
+    
+    // Prevent processing the same token twice (debounce duplicate scans)
+    if (lastProcessedTokenRef.current === decodedText) return;
+    
+    // Set refs synchronously BEFORE any async operation
+    processingRef.current = true;
+    lastProcessedTokenRef.current = decodedText;
     
     setIsProcessing(true);
     setScanResult({ status: 'processing', message: 'Validando token JWT...' });
@@ -82,9 +95,19 @@ export function QRCodeScanner() {
         });
       }
     } finally {
+      processingRef.current = false;
       setIsProcessing(false);
+      
+      // Clear the last processed token after a cooldown period (3 seconds)
+      // This prevents the same QR code from being scanned again too quickly
+      if (cooldownRef.current) {
+        clearTimeout(cooldownRef.current);
+      }
+      cooldownRef.current = setTimeout(() => {
+        lastProcessedTokenRef.current = null;
+      }, 3000);
     }
-  }, [isProcessing, profile]);
+  }, [profile]);
 
   const processValidatedProfessor = useCallback(async (professor: { id: string; nome: string; matricula: string | null; unidade_id: string | null }) => {
     const directorUnitId = profile?.unidade_id;
@@ -320,6 +343,10 @@ export function QRCodeScanner() {
     return () => {
       if (scannerRef.current?.isScanning) {
         scannerRef.current.stop();
+      }
+      // Clear cooldown timer on unmount
+      if (cooldownRef.current) {
+        clearTimeout(cooldownRef.current);
       }
     };
   }, []);
