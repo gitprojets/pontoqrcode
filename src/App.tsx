@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ThemeProvider } from "next-themes";
 import { lazy, Suspense } from "react";
+import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 
 // Eager load critical pages
 import Index from "./pages/Index";
@@ -63,6 +64,7 @@ const App = () => (
         <AuthProvider>
           <Toaster />
           <Sonner />
+          <PWAUpdatePrompt />
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
               <Routes>

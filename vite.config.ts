@@ -14,35 +14,69 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.jpeg', 'favicon.png'],
+      registerType: 'prompt', // Changed to prompt for manual update control
+      includeAssets: ['favicon.jpeg', 'favicon.png', 'robots.txt'],
       manifest: {
         name: 'FrequênciaQR - Sistema de Frequência Escolar',
         short_name: 'FrequênciaQR',
         description: 'Sistema de controle de frequência escolar via QR Code',
         theme_color: '#2563eb',
-        background_color: '#f8fafc',
+        background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
         start_url: '/login',
+        lang: 'pt-BR',
+        categories: ['education', 'productivity', 'utilities'],
         icons: [
           {
             src: '/favicon.jpeg',
             sizes: '192x192',
             type: 'image/jpeg',
-            purpose: 'any maskable'
+            purpose: 'any'
           },
           {
             src: '/favicon.jpeg',
             sizes: '512x512',
             type: 'image/jpeg',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: '/favicon.jpeg',
+            sizes: '192x192',
+            type: 'image/jpeg',
+            purpose: 'maskable'
+          },
+          {
+            src: '/favicon.jpeg',
+            sizes: '512x512',
+            type: 'image/jpeg',
+            purpose: 'maskable'
+          }
+        ],
+        screenshots: [],
+        shortcuts: [
+          {
+            name: 'Dashboard',
+            short_name: 'Painel',
+            description: 'Acessar o painel principal',
+            url: '/dashboard',
+            icons: [{ src: '/favicon.jpeg', sizes: '192x192' }]
+          },
+          {
+            name: 'Meu QR Code',
+            short_name: 'QR Code',
+            description: 'Ver meu QR Code',
+            url: '/qrcode',
+            icons: [{ src: '/favicon.jpeg', sizes: '192x192' }]
           }
         ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,jpeg,jpg,svg,woff2}'],
+        cleanupOutdatedCaches: true,
+        skipWaiting: false, // We handle this manually in the update prompt
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -57,8 +91,40 @@ export default defineConfig(({ mode }) => ({
                 statuses: [0, 200]
               }
             }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /\/api\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 5 // 5 minutes
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           }
         ]
+      },
+      devOptions: {
+        enabled: false
       }
     })
   ].filter(Boolean),

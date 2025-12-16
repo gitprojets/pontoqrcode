@@ -33,17 +33,17 @@ function ProfessorDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-3xl font-display font-bold text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
           Meu Painel
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Acompanhe sua frequência e agenda
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard
           title="Presenças no Mês"
           value={String(stats.presencasMes)}
@@ -79,7 +79,7 @@ function ProfessorDashboard() {
         title="Minha Frequência - Últimos 14 dias"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         <SchoolCalendar />
         <AttendanceHistory />
       </div>
@@ -100,17 +100,17 @@ function DiretorDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-3xl font-display font-bold text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
           Painel do Diretor
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Visão geral da frequência da unidade
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard
           title="Professores Presentes"
           value={String(stats.professoresPresentes)}
@@ -147,7 +147,7 @@ function DiretorDashboard() {
         title="Frequência da Unidade - Últimos 14 dias"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         <SchoolCalendar />
         <AttendanceHistory />
       </div>
@@ -173,23 +173,23 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
             Painel Administrativo
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Visão geral de todas as unidades
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2">
+        <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2 w-full sm:w-auto">
           <RefreshCw className="w-4 h-4" />
           Atualizar
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard
           title="Unidades Ativas"
           value={String(stats.unidadesAtivas)}
@@ -226,7 +226,7 @@ function AdminDashboard() {
         title="Frequência Geral - Últimos 14 dias"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         <SchoolCalendar />
         <AttendanceHistory />
       </div>
@@ -247,17 +247,17 @@ function CoordenadorDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-3xl font-display font-bold text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
           Painel de Gestão
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Acompanhe a frequência da unidade
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard
           title="Professores Presentes"
           value={String(stats.professoresPresentes)}
@@ -288,7 +288,7 @@ function CoordenadorDashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         <SchoolCalendar />
         <AttendanceHistory />
       </div>
@@ -299,12 +299,12 @@ function CoordenadorDashboard() {
 // Simple dashboard for "outro" role
 function SimpleDashboard() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-3xl font-display font-bold text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
           Bem-vindo ao Sistema
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Sistema de Gestão de Frequência Escolar
         </p>
       </div>
