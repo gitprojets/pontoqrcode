@@ -2,21 +2,82 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>FrequênciaQR - Sistema de Frequência Escolar</title>
     <meta name="description" content="Sistema de gestão de frequência escolar com leitura de QR Code para professores, alunos e colaboradores." />
     <meta name="author" content="FrequênciaQR" />
 
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1e40af" media="(prefers-color-scheme: dark)" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FrequênciaQR" />
+    <meta name="application-name" content="FrequênciaQR" />
+    <meta name="msapplication-TileColor" content="#2563eb" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Open Graph -->
     <meta property="og:title" content="FrequênciaQR - Sistema de Frequência Escolar" />
     <meta property="og:description" content="Gestão de presença simples e eficiente com tecnologia QR Code." />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="/favicon.jpeg" />
 
+    <!-- Icons -->
     <link rel="icon" type="image/jpeg" href="/favicon.jpeg" />
     <link rel="apple-touch-icon" href="/favicon.jpeg" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/favicon.jpeg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.jpeg" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/favicon.jpeg" />
 
+    <!-- Splash Screens for iOS -->
+    <link rel="apple-touch-startup-image" href="/favicon.jpeg" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Prevent zoom on input focus on iOS -->
+    <style>
+      @supports (-webkit-touch-callout: none) {
+        input, select, textarea {
+          font-size: 16px !important;
+        }
+      }
+      
+      /* Safe area padding for notched devices */
+      body {
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      }
+      
+      /* Prevent overscroll bounce on iOS */
+      html, body {
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      /* Hide scrollbar but keep functionality */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: hsl(var(--muted-foreground) / 0.3);
+        border-radius: 3px;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: hsl(var(--muted-foreground) / 0.5);
+      }
+    </style>
   </head>
 
   <body>

@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +19,7 @@ import {
   Headphones,
   Database,
   LucideIcon,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -140,6 +141,12 @@ NavItem.displayName = 'NavItem';
 const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
   const { profile, role, logout, isLoading } = useAuth();
   const location = useLocation();
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Check if running as PWA (standalone mode)
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
+  }, []);
 
   const handleNavClick = useCallback(() => {
     if (onClose) onClose();
@@ -223,6 +230,22 @@ const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border space-y-2">
+        {/* Install PWA button - only show if not in standalone mode */}
+        {!isStandalone && (
+          <NavLink
+            to="/install"
+            onClick={handleNavClick}
+            className={cn(
+              'flex items-center gap-3 px-3 lg:px-4 py-2.5 rounded-lg transition-all duration-200 mb-2',
+              location.pathname === '/install'
+                ? 'bg-primary/20 text-primary'
+                : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+            )}
+          >
+            <Download className="w-5 h-5 flex-shrink-0" />
+            <span className="font-medium truncate">Instalar App</span>
+          </NavLink>
+        )}
         <div className="flex items-center justify-between">
           <span className="text-xs text-sidebar-foreground/70">Tema</span>
           <ThemeToggle />
