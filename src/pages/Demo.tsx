@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { 
-  QrCode, 
   Users, 
   Shield, 
   Code, 
@@ -9,8 +8,10 @@ import {
   CheckCircle,
   Calendar,
   ClipboardList,
+  QrCode,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import logoImage from '@/assets/logo-main.png';
 
 const demoCards = [
   {
@@ -54,9 +55,7 @@ export default function Demo() {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <QrCode className="w-6 h-6 text-primary" />
-            </div>
+            <img src={logoImage} alt="FrequênciaQR" className="w-10 h-10 rounded-xl shadow-sm" />
             <div>
               <h1 className="font-display font-bold text-foreground text-lg">FrequênciaQR</h1>
               <span className="text-xs text-muted-foreground">Demonstração</span>

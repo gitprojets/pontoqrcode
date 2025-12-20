@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { StatSkeletonRow } from '@/components/ui/stat-skeleton';
 import { useCountAnimation } from '@/hooks/useCountAnimation';
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logo-main.png';
 
 const features = [
   {
