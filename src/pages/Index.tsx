@@ -38,16 +38,25 @@ const Index = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Buscar contagens sem RLS usando select com count
-        const { data: escolas } = await supabase.from('unidades').select('id');
-        const { data: usuarios } = await supabase.from('profiles').select('id');
-        const { data: leituras } = await supabase.from('registros_frequencia').select('id').eq('data_registro', new Date().toISOString().split('T')[0]);
+        // Usar edge function para buscar estatísticas públicas (bypassa RLS)
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-stats`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
         
-        setStats({
-          escolas: escolas?.length || 0,
-          usuarios: usuarios?.length || 0,
-          leituras: leituras?.length || 0
-        });
+        if (response.ok) {
+          const data = await response.json();
+          setStats({
+            escolas: data.escolas || 0,
+            usuarios: data.usuarios || 0,
+            leituras: data.leituras || 0
+          });
+        }
       } catch (error) {
         console.error('Erro ao buscar estatísticas:', error);
       }
