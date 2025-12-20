@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { ThemedLogo } from '@/components/ThemedLogo';
 import { LoginStatSkeletonRow } from '@/components/ui/stat-skeleton';
 import { useCountAnimation } from '@/hooks/useCountAnimation';
+import { SparkleParticles } from '@/components/effects/SparkleParticles';
 
 interface AnimatedLoginStatProps {
   value: number;
@@ -177,12 +178,8 @@ export default function Login() {
           <ThemeToggle />
         </div>
         
-        {/* Animated background effects */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-white/10 blur-3xl animate-pulse" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-white/5 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full bg-white/5 blur-2xl animate-pulse" style={{ animationDelay: '0.5s' }} />
-        </div>
+        {/* Sparkle particles effect */}
+        <SparkleParticles count={25} />
         
         <div className="relative z-10 flex flex-col justify-center p-8 xl:p-12 text-white">
           <div className="mb-8 xl:mb-12">
