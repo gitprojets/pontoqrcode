@@ -40,6 +40,7 @@ const Seguranca = lazy(() => import("./pages/Seguranca"));
 const Suporte = lazy(() => import("./pages/Suporte"));
 const SuporteAdmin = lazy(() => import("./pages/SuporteAdmin"));
 const SeedData = lazy(() => import("./pages/SeedData"));
+const AuditLogs = lazy(() => import("./pages/AuditLogs"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -116,6 +117,7 @@ const App = () => (
                 <Route path="/suporte" element={<ProtectedRoute allowedRoles={['professor', 'diretor', 'coordenador', 'secretario', 'administrador', 'outro']}><Suporte /></ProtectedRoute>} />
                 <Route path="/suporte-admin" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><SuporteAdmin /></ProtectedRoute>} />
                 <Route path="/seed-data" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><SeedData /></ProtectedRoute>} />
+                <Route path="/audit-logs" element={<ProtectedRoute allowedRoles={['desenvolvedor', 'administrador']}><AuditLogs /></ProtectedRoute>} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
