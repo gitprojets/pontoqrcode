@@ -7,6 +7,39 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ThemedLogo } from '@/components/ThemedLogo';
+import { LoginStatSkeletonRow } from '@/components/ui/stat-skeleton';
+import { useCountAnimation } from '@/hooks/useCountAnimation';
+
+interface AnimatedLoginStatProps {
+  value: number;
+  label: string;
+  delay: number;
+  isLoaded: boolean;
+}
+
+function AnimatedLoginStat({ value, label, delay, isLoaded }: AnimatedLoginStatProps) {
+  const { count } = useCountAnimation({ 
+    end: value, 
+    duration: 2000, 
+    delay,
+    enabled: isLoaded 
+  });
+
+  return (
+    <div 
+      className="bg-white/10 rounded-xl p-3 xl:p-4 backdrop-blur-sm transform transition-all duration-500 hover:bg-white/15 hover:scale-105"
+      style={{ 
+        animation: isLoaded ? `fadeSlideUp 0.6s ease-out ${delay}ms forwards` : 'none',
+        opacity: isLoaded ? 1 : 0
+      }}
+    >
+      <p className="text-xl xl:text-2xl font-display font-bold tabular-nums">
+        {count.toLocaleString('pt-BR')}
+      </p>
+      <p className="text-xs xl:text-sm text-sidebar-foreground/70">{label}</p>
+    </div>
+  );
+}
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -14,11 +47,14 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState({ escolas: 0, usuarios: 0, leituras: 0 });
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
+  const [isStatsLoaded, setIsStatsLoaded] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        setIsStatsLoading(true);
         // Usar edge function para buscar estatísticas públicas (bypassa RLS)
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-stats`,
@@ -41,6 +77,9 @@ export default function Login() {
       } catch (error) {
         // Silently fail - stats are not critical for login
         console.warn('Could not fetch login stats:', error);
+      } finally {
+        setIsStatsLoading(false);
+        setTimeout(() => setIsStatsLoaded(true), 100);
       }
     };
     fetchStats();
@@ -105,6 +144,24 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+      {/* CSS for animations */}
+      <style>{`
+        @keyframes fadeSlideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      `}</style>
+
       {/* Mobile Header */}
       <div className="lg:hidden flex items-center justify-between p-4 border-b border-border">
         <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
@@ -114,23 +171,26 @@ export default function Login() {
         <ThemeToggle />
       </div>
 
-      {/* Left Panel - Decorative */}
-      <div className="hidden lg:flex lg:w-1/2 sidebar-gradient relative overflow-hidden">
+      {/* Left Panel - Decorative with sparkling blue */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ background: 'var(--gradient-sidebar)' }}>
         <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-sidebar-foreground/20 blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-sidebar-foreground/10 blur-3xl" />
+        
+        {/* Animated background effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-white/10 blur-3xl animate-pulse" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-white/5 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full bg-white/5 blur-2xl animate-pulse" style={{ animationDelay: '0.5s' }} />
         </div>
         
-        <div className="relative z-10 flex flex-col justify-center p-8 xl:p-12 text-sidebar-foreground">
+        <div className="relative z-10 flex flex-col justify-center p-8 xl:p-12 text-white">
           <div className="mb-8 xl:mb-12">
             <div className="flex items-center gap-4 mb-6 xl:mb-8">
-              <ThemedLogo className="w-14 h-14 xl:w-16 xl:h-16 rounded-2xl" />
+              <ThemedLogo className="w-14 h-14 xl:w-16 xl:h-16 rounded-2xl shadow-lg" />
               <div>
                 <h1 className="text-2xl xl:text-3xl font-display font-bold">FrequênciaQR</h1>
-                <p className="text-sidebar-foreground/70 text-sm">Sistema de Frequência Escolar</p>
+                <p className="text-white/70 text-sm">Sistema de Frequência Escolar</p>
               </div>
             </div>
             
@@ -138,24 +198,37 @@ export default function Login() {
               Gestão Escolar Ágil
             </h2>
             
-            <p className="text-base xl:text-lg text-sidebar-foreground/80 max-w-md">
+            <p className="text-base xl:text-lg text-white/80 max-w-md">
               Registre a frequência de professores, alunos e colaboradores com 
               tecnologia QR Code. Relatórios em tempo real e total controle.
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 xl:gap-4">
-            {[
-              { label: 'Escolas', value: stats.escolas },
-              { label: 'Usuários', value: stats.usuarios },
-              { label: 'Leituras/dia', value: stats.leituras },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-sidebar-foreground/10 rounded-xl p-3 xl:p-4">
-                <p className="text-xl xl:text-2xl font-display font-bold">{stat.value}</p>
-                <p className="text-xs xl:text-sm text-sidebar-foreground/70">{stat.label}</p>
-              </div>
-            ))}
-          </div>
+          {/* Stats with loading skeleton and animation */}
+          {isStatsLoading ? (
+            <LoginStatSkeletonRow />
+          ) : (
+            <div className="grid grid-cols-3 gap-3 xl:gap-4">
+              <AnimatedLoginStat 
+                value={stats.escolas} 
+                label="Escolas" 
+                delay={0}
+                isLoaded={isStatsLoaded}
+              />
+              <AnimatedLoginStat 
+                value={stats.usuarios} 
+                label="Usuários" 
+                delay={150}
+                isLoaded={isStatsLoaded}
+              />
+              <AnimatedLoginStat 
+                value={stats.leituras} 
+                label="Leituras/dia" 
+                delay={300}
+                isLoaded={isStatsLoaded}
+              />
+            </div>
+          )}
         </div>
       </div>
 
