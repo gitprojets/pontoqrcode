@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { QRCodeScanner } from '@/components/qrcode/QRCodeScanner';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+// Lazy load the heavy QR scanner component
+const QRCodeScanner = lazy(() => import('@/components/qrcode/QRCodeScanner').then(m => ({ default: m.QRCodeScanner })));
 import {
   Trash2,
   RefreshCw,
@@ -161,8 +163,14 @@ export default function LeitorQRCode() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {/* Scanner */}
-          <QRCodeScanner />
+          {/* Scanner with Suspense for lazy loading */}
+          <Suspense fallback={
+            <div className="card-elevated p-6 flex items-center justify-center min-h-[400px]">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          }>
+            <QRCodeScanner />
+          </Suspense>
 
           {/* Today's Readings */}
           <div className="card-elevated p-6 animate-slide-up">

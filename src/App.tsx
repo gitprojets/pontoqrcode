@@ -9,12 +9,14 @@ import { ThemeProvider } from "next-themes";
 import { lazy, Suspense } from "react";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 
-// Eager load critical pages
+// Eager load only the absolute minimum
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import Install from "./pages/Install";
-import Dashboard from "./pages/Dashboard";
-import Setup from "./pages/Setup";
+
+// Lazy load all other pages for better performance
+const Install = lazy(() => import("./pages/Install"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Setup = lazy(() => import("./pages/Setup"));
 
 // Lazy load other pages for better performance
 const Demo = lazy(() => import("./pages/Demo"));
@@ -43,10 +45,11 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: 10 * 60 * 1000, // 10 minutes - increased for less refetching
+      gcTime: 30 * 60 * 1000, // 30 minutes - keep cache longer
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
   },
 });
