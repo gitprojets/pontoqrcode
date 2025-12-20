@@ -19,18 +19,25 @@ export default function Login() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Using count queries that may fail silently if RLS blocks access
-        const [escolasRes, usuariosRes, leiturasRes] = await Promise.allSettled([
-          supabase.from('unidades').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }),
-          supabase.from('registros_frequencia').select('id', { count: 'exact', head: true }).eq('data_registro', new Date().toISOString().split('T')[0])
-        ]);
+        // Usar edge function para buscar estatísticas públicas (bypassa RLS)
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-stats`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
         
-        setStats({
-          escolas: escolasRes.status === 'fulfilled' ? (escolasRes.value.count || 0) : 0,
-          usuarios: usuariosRes.status === 'fulfilled' ? (usuariosRes.value.count || 0) : 0,
-          leituras: leiturasRes.status === 'fulfilled' ? (leiturasRes.value.count || 0) : 0
-        });
+        if (response.ok) {
+          const data = await response.json();
+          setStats({
+            escolas: data.escolas || 0,
+            usuarios: data.usuarios || 0,
+            leituras: data.leituras || 0
+          });
+        }
       } catch (error) {
         // Silently fail - stats are not critical for login
         console.warn('Could not fetch login stats:', error);

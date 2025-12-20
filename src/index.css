@@ -109,7 +109,32 @@
 
     --gradient-sidebar: linear-gradient(180deg, hsl(215, 25%, 8%) 0%, hsl(215, 25%, 6%) 100%);
   }
-}
+  }
+
+  /* Theme transition */
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  /* Smooth theme transitions for all elements */
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-in-out;
+  }
+
+  /* Disable transitions on page load to prevent flash */
+  html.no-transition *,
+  html.no-transition *::before,
+  html.no-transition *::after {
+    transition: none !important;
+  }
 
 @layer base {
   * {
