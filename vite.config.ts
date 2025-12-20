@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'prompt', // Changed to prompt for manual update control
-      includeAssets: ['favicon.jpeg', 'favicon.png', 'robots.txt'],
+      includeAssets: ['favicon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png', 'robots.txt'],
       manifest: {
         name: 'FrequênciaQR - Sistema de Frequência Escolar',
         short_name: 'FrequênciaQR',
@@ -30,28 +30,34 @@ export default defineConfig(({ mode }) => ({
         categories: ['education', 'productivity', 'utilities'],
         icons: [
           {
-            src: '/favicon.jpeg',
+            src: '/pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/favicon.jpeg',
+            src: '/pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/favicon.jpeg',
+            src: '/pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'maskable'
           },
           {
-            src: '/favicon.jpeg',
+            src: '/pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'maskable'
+          },
+          {
+            src: '/apple-touch-icon.png',
+            sizes: '180x180',
+            type: 'image/png',
+            purpose: 'any'
           }
         ],
         screenshots: [],
@@ -61,14 +67,14 @@ export default defineConfig(({ mode }) => ({
             short_name: 'Painel',
             description: 'Acessar o painel principal',
             url: '/dashboard',
-            icons: [{ src: '/favicon.jpeg', sizes: '192x192' }]
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }]
           },
           {
             name: 'Meu QR Code',
             short_name: 'QR Code',
             description: 'Ver meu QR Code',
             url: '/qrcode',
-            icons: [{ src: '/favicon.jpeg', sizes: '192x192' }]
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }]
           }
         ]
       },
