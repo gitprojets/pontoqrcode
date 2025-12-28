@@ -16,9 +16,11 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Smartphone,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { PushNotificationToggle } from '@/components/notifications/PushNotificationToggle';
 
 export default function Configuracoes() {
   const { profile, role, refreshProfile } = useAuth();
@@ -240,7 +242,21 @@ export default function Configuracoes() {
               </div>
               
               <div className="space-y-3 lg:space-y-4">
-                <div className="flex items-center justify-between p-3 lg:p-4 bg-muted/50 rounded-lg">
+                {/* Push Notifications */}
+                <div className="flex items-center justify-between p-3 lg:p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-xl border border-primary/10">
+                  <div className="flex items-center gap-3 flex-1 min-w-0 mr-4">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Smartphone className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground text-sm lg:text-base">Notificações Push</p>
+                      <p className="text-xs lg:text-sm text-muted-foreground">Receber alertas em tempo real no dispositivo</p>
+                    </div>
+                  </div>
+                  <PushNotificationToggle variant="switch" showLabel={false} />
+                </div>
+                
+                <div className="flex items-center justify-between p-3 lg:p-4 bg-muted/50 rounded-xl">
                   <div className="flex-1 min-w-0 mr-4">
                     <p className="font-medium text-foreground text-sm lg:text-base">Alertas de presença</p>
                     <p className="text-xs lg:text-sm text-muted-foreground">Receber notificações sobre registros</p>
@@ -250,7 +266,7 @@ export default function Configuracoes() {
                     onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, presenceAlerts: checked }))}
                   />
                 </div>
-                <div className="flex items-center justify-between p-3 lg:p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between p-3 lg:p-4 bg-muted/50 rounded-xl">
                   <div className="flex-1 min-w-0 mr-4">
                     <p className="font-medium text-foreground text-sm lg:text-base">Lembretes</p>
                     <p className="text-xs lg:text-sm text-muted-foreground">Receber lembretes sobre horários</p>
@@ -260,7 +276,7 @@ export default function Configuracoes() {
                     onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, reminders: checked }))}
                   />
                 </div>
-                <div className="flex items-center justify-between p-3 lg:p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between p-3 lg:p-4 bg-muted/50 rounded-xl">
                   <div className="flex-1 min-w-0 mr-4">
                     <p className="font-medium text-foreground text-sm lg:text-base">E-mails de resumo</p>
                     <p className="text-xs lg:text-sm text-muted-foreground">Receber resumo semanal por e-mail</p>

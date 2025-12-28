@@ -7,7 +7,13 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useAttendanceChart } from '@/hooks/useAttendanceChart';
 import { Button } from '@/components/ui/button';
-import { DashboardStatsSkeleton } from '@/components/ui/enhanced-skeleton';
+import { 
+  DashboardStatsSkeleton, 
+  ChartSkeleton, 
+  CalendarSkeleton,
+  HistoryListSkeleton,
+  PageHeaderSkeleton 
+} from '@/components/ui/modern-skeleton';
 import { motion } from 'framer-motion';
 import {
   CheckCircle,
@@ -29,11 +35,13 @@ function ProfessorDashboard() {
   if (isLoading) {
     return (
       <div className="space-y-6 sm:space-y-8">
-        <div>
-          <div className="h-8 w-40 bg-muted rounded animate-pulse mb-2" />
-          <div className="h-4 w-60 bg-muted/50 rounded animate-pulse" />
-        </div>
+        <PageHeaderSkeleton />
         <DashboardStatsSkeleton />
+        <ChartSkeleton />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          <CalendarSkeleton />
+          <HistoryListSkeleton items={4} />
+        </div>
       </div>
     );
   }
