@@ -21,6 +21,7 @@ import {
   LucideIcon,
   Download,
   ScrollText,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -127,14 +128,23 @@ const NavItem = memo(function NavItem({ item, isActive, onClick }: { item: MenuI
       to={item.path}
       onClick={onClick}
       className={cn(
-        'flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg transition-all duration-200',
+        'group flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl transition-all duration-200 relative overflow-hidden',
         isActive
-          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
-          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          ? 'bg-white/20 text-sidebar-foreground shadow-lg backdrop-blur-sm'
+          : 'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground'
       )}
     >
-      <Icon className="w-5 h-5 flex-shrink-0" />
-      <span className="font-medium truncate">{item.label}</span>
+      {isActive && (
+        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent" />
+      )}
+      <Icon className={cn(
+        "w-5 h-5 flex-shrink-0 transition-transform duration-200 relative z-10",
+        isActive && "scale-110"
+      )} />
+      <span className="font-medium truncate relative z-10">{item.label}</span>
+      {isActive && (
+        <Sparkles className="w-3 h-3 ml-auto opacity-70 animate-pulse relative z-10" />
+      )}
     </NavLink>
   );
 });
@@ -147,7 +157,6 @@ const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    // Check if running as PWA (standalone mode)
     setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
   }, []);
 
@@ -162,7 +171,7 @@ const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
 
   const userInitials = useMemo(() => {
     if (!profile?.nome) return '??';
-    return profile.nome.split(' ').map(n => n[0]).slice(0, 2).join('');
+    return profile.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   }, [profile?.nome]);
 
   if (isLoading || !profile || !role) {
@@ -174,17 +183,20 @@ const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
   }
 
   return (
-    <aside className="h-screen w-64 sidebar-gradient flex flex-col">
+    <aside className="h-screen w-64 sidebar-gradient flex flex-col relative">
       {/* Logo */}
-      <div className="p-4 lg:p-6 border-b border-sidebar-border">
+      <div className="p-4 lg:p-6 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <ThemedLogo className="w-10 h-10 rounded-xl" />
+            <div className="relative">
+              <ThemedLogo className="w-10 h-10 rounded-xl ring-2 ring-white/20" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success rounded-full border-2 border-sidebar-background" />
+            </div>
             <div>
-              <h1 className="font-display font-bold text-sidebar-foreground text-lg">
+              <h1 className="font-display font-bold text-sidebar-foreground text-lg tracking-tight">
                 FrequênciaQR
               </h1>
-              <span className="text-xs text-sidebar-foreground/70">
+              <span className="text-xs text-sidebar-foreground/60 font-medium">
                 Sistema Escolar
               </span>
             </div>
@@ -194,7 +206,7 @@ const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="lg:hidden text-sidebar-foreground hover:bg-sidebar-accent"
+              className="lg:hidden text-sidebar-foreground hover:bg-white/10 rounded-xl"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -203,16 +215,16 @@ const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* User Info */}
-      <div className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center text-sidebar-foreground font-semibold text-sm">
+      <div className="p-4 border-b border-white/10">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 backdrop-blur-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white/30 to-white/10 flex items-center justify-center text-sidebar-foreground font-bold text-sm shadow-inner">
             {userInitials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">
               {profile.nome}
             </p>
-            <p className="text-xs text-sidebar-foreground/70">
+            <p className="text-xs text-sidebar-foreground/60 font-medium">
               {roleLabels[role] || role}
             </p>
           </div>
@@ -220,7 +232,7 @@ const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 lg:p-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 lg:p-4 space-y-1 overflow-y-auto scrollbar-thin">
         {items.map((item) => (
           <NavItem
             key={item.path}
@@ -232,30 +244,32 @@ const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border space-y-2">
-        {/* Install PWA button - only show if not in standalone mode */}
+      <div className="p-4 border-t border-white/10 space-y-3">
+        {/* Install PWA button */}
         {!isStandalone && (
           <NavLink
             to="/install"
             onClick={handleNavClick}
             className={cn(
-              'flex items-center gap-3 px-3 lg:px-4 py-2.5 rounded-lg transition-all duration-200 mb-2',
+              'flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200',
               location.pathname === '/install'
-                ? 'bg-primary/20 text-primary'
-                : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                ? 'bg-white/20 text-sidebar-foreground'
+                : 'text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground'
             )}
           >
             <Download className="w-5 h-5 flex-shrink-0" />
             <span className="font-medium truncate">Instalar App</span>
           </NavLink>
         )}
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-sidebar-foreground/70">Tema</span>
+        
+        <div className="flex items-center justify-between px-2">
+          <span className="text-xs text-sidebar-foreground/60 font-medium">Tema</span>
           <ThemeToggle />
         </div>
+        
         <Button
           variant="ghost"
-          className="w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-white/10 rounded-xl"
           onClick={logout}
         >
           <LogOut className="w-5 h-5 mr-3" />
