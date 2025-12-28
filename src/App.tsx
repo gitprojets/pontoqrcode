@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ThemeProvider } from "next-themes";
 import { lazy, Suspense } from "react";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
+import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
 
 // Eager load only the absolute minimum
 import Index from "./pages/Index";
@@ -69,6 +70,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <PWAUpdatePrompt />
+          <OfflineIndicator />
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
               <Routes>
