@@ -7,6 +7,8 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useAttendanceChart } from '@/hooks/useAttendanceChart';
 import { Button } from '@/components/ui/button';
+import { DashboardStatsSkeleton } from '@/components/ui/enhanced-skeleton';
+import { motion } from 'framer-motion';
 import {
   CheckCircle,
   Clock,
@@ -26,8 +28,12 @@ function ProfessorDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="space-y-6 sm:space-y-8">
+        <div>
+          <div className="h-8 w-40 bg-muted rounded animate-pulse mb-2" />
+          <div className="h-4 w-60 bg-muted/50 rounded animate-pulse" />
+        </div>
+        <DashboardStatsSkeleton />
       </div>
     );
   }

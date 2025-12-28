@@ -246,6 +246,15 @@
     50% { transform: translateY(-8px); }
   }
 
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
   .text-gradient {
     background: var(--gradient-hero);
     -webkit-background-clip: text;
