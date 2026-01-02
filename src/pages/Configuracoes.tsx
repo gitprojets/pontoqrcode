@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserSettings } from '@/hooks/useUserSettings';
+import { useAttendanceRules } from '@/hooks/useAttendanceRules';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -17,6 +19,7 @@ import {
   Eye,
   EyeOff,
   Smartphone,
+  CheckCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,11 +27,13 @@ import { PushNotificationToggle } from '@/components/notifications/PushNotificat
 
 export default function Configuracoes() {
   const { profile, role, refreshProfile } = useAuth();
+  const { settings, isLoading: settingsLoading, updateSetting, isSaving: settingsSaving } = useUserSettings();
+  const { rules, isLoading: rulesLoading, updateRules, isSaving: rulesSaving, canEdit: canEditRules } = useAttendanceRules();
+  
   const isAdmin = role === 'administrador';
   const isDev = role === 'desenvolvedor';
   const isDiretor = role === 'diretor';
 
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
   // Profile state
@@ -36,18 +41,19 @@ export default function Configuracoes() {
   const [email, setEmail] = useState('');
   
   // Password state
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // Notification preferences (local state for now)
-  const [notifications, setNotifications] = useState({
-    presenceAlerts: true,
-    reminders: true,
-    emailSummary: false,
+  // Local attendance rules state for form
+  const [localRules, setLocalRules] = useState({
+    tolerancia_entrada: 15,
+    tolerancia_saida: 10,
+    max_correcoes_mes: 3,
+    prazo_correcao_dias: 5,
   });
+  const [rulesChanged, setRulesChanged] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -55,6 +61,17 @@ export default function Configuracoes() {
       setEmail(profile.email);
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (rules) {
+      setLocalRules({
+        tolerancia_entrada: rules.tolerancia_entrada,
+        tolerancia_saida: rules.tolerancia_saida,
+        max_correcoes_mes: rules.max_correcoes_mes,
+        prazo_correcao_dias: rules.prazo_correcao_dias,
+      });
+    }
+  }, [rules]);
 
   const handleSaveProfile = async () => {
     if (!profile) return;
@@ -107,13 +124,24 @@ export default function Configuracoes() {
 
       setNewPassword('');
       setConfirmPassword('');
-      setCurrentPassword('');
       toast.success('Senha alterada com sucesso!');
     } catch (error: any) {
       console.error('Erro ao alterar senha:', error);
       toast.error('Erro ao alterar senha: ' + error.message);
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleRuleChange = (key: keyof typeof localRules, value: number) => {
+    setLocalRules(prev => ({ ...prev, [key]: value }));
+    setRulesChanged(true);
+  };
+
+  const handleSaveRules = async () => {
+    const success = await updateRules(localRules);
+    if (success) {
+      setRulesChanged(false);
     }
   };
 
@@ -239,6 +267,7 @@ export default function Configuracoes() {
                 <h2 className="text-lg font-display font-semibold text-foreground">
                   Notificações
                 </h2>
+                {settingsLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
               </div>
               
               <div className="space-y-3 lg:space-y-4">
@@ -262,8 +291,9 @@ export default function Configuracoes() {
                     <p className="text-xs lg:text-sm text-muted-foreground">Receber notificações sobre registros</p>
                   </div>
                   <Switch 
-                    checked={notifications.presenceAlerts}
-                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, presenceAlerts: checked }))}
+                    checked={settings?.presence_alerts ?? true}
+                    onCheckedChange={(checked) => updateSetting('presence_alerts', checked)}
+                    disabled={settingsLoading || settingsSaving}
                   />
                 </div>
                 <div className="flex items-center justify-between p-3 lg:p-4 bg-muted/50 rounded-xl">
@@ -272,8 +302,9 @@ export default function Configuracoes() {
                     <p className="text-xs lg:text-sm text-muted-foreground">Receber lembretes sobre horários</p>
                   </div>
                   <Switch 
-                    checked={notifications.reminders}
-                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, reminders: checked }))}
+                    checked={settings?.reminders ?? true}
+                    onCheckedChange={(checked) => updateSetting('reminders', checked)}
+                    disabled={settingsLoading || settingsSaving}
                   />
                 </div>
                 <div className="flex items-center justify-between p-3 lg:p-4 bg-muted/50 rounded-xl">
@@ -282,8 +313,9 @@ export default function Configuracoes() {
                     <p className="text-xs lg:text-sm text-muted-foreground">Receber resumo semanal por e-mail</p>
                   </div>
                   <Switch 
-                    checked={notifications.emailSummary}
-                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, emailSummary: checked }))}
+                    checked={settings?.email_summary ?? false}
+                    onCheckedChange={(checked) => updateSetting('email_summary', checked)}
+                    disabled={settingsLoading || settingsSaving}
                   />
                 </div>
               </div>
@@ -292,13 +324,26 @@ export default function Configuracoes() {
             {/* Attendance Rules - Diretor/Admin only */}
             {(isDiretor || isAdmin || isDev) && (
               <div className="card-elevated p-4 lg:p-6 animate-slide-up" style={{ animationDelay: '150ms' }}>
-                <div className="flex items-center gap-3 mb-4 lg:mb-6">
-                  <div className="p-2 bg-warning/10 rounded-lg">
-                    <Clock className="w-5 h-5 text-warning" />
+                <div className="flex items-center justify-between mb-4 lg:mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-warning/10 rounded-lg">
+                      <Clock className="w-5 h-5 text-warning" />
+                    </div>
+                    <h2 className="text-lg font-display font-semibold text-foreground">
+                      Regras de Presença
+                    </h2>
+                    {rulesLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
                   </div>
-                  <h2 className="text-lg font-display font-semibold text-foreground">
-                    Regras de Presença
-                  </h2>
+                  {rulesChanged && canEditRules && (
+                    <Button 
+                      size="sm" 
+                      onClick={handleSaveRules}
+                      disabled={rulesSaving}
+                    >
+                      {rulesSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                      Salvar
+                    </Button>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 lg:gap-4">
@@ -306,27 +351,53 @@ export default function Configuracoes() {
                     <label className="text-xs lg:text-sm font-medium text-foreground">
                       Tolerância entrada (min)
                     </label>
-                    <Input type="number" defaultValue="15" />
+                    <Input 
+                      type="number" 
+                      value={localRules.tolerancia_entrada}
+                      onChange={(e) => handleRuleChange('tolerancia_entrada', Number(e.target.value))}
+                      disabled={!canEditRules || rulesLoading}
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs lg:text-sm font-medium text-foreground">
                       Tolerância saída (min)
                     </label>
-                    <Input type="number" defaultValue="10" />
+                    <Input 
+                      type="number" 
+                      value={localRules.tolerancia_saida}
+                      onChange={(e) => handleRuleChange('tolerancia_saida', Number(e.target.value))}
+                      disabled={!canEditRules || rulesLoading}
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs lg:text-sm font-medium text-foreground">
                       Correções max/mês
                     </label>
-                    <Input type="number" defaultValue="3" />
+                    <Input 
+                      type="number" 
+                      value={localRules.max_correcoes_mes}
+                      onChange={(e) => handleRuleChange('max_correcoes_mes', Number(e.target.value))}
+                      disabled={!canEditRules || rulesLoading}
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs lg:text-sm font-medium text-foreground">
                       Prazo correção (dias)
                     </label>
-                    <Input type="number" defaultValue="5" />
+                    <Input 
+                      type="number" 
+                      value={localRules.prazo_correcao_dias}
+                      onChange={(e) => handleRuleChange('prazo_correcao_dias', Number(e.target.value))}
+                      disabled={!canEditRules || rulesLoading}
+                    />
                   </div>
                 </div>
+                
+                {!canEditRules && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Somente diretores e administradores podem editar estas regras.
+                  </p>
+                )}
               </div>
             )}
 
@@ -389,7 +460,7 @@ export default function Configuracoes() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Versão</span>
-                  <span className="font-medium text-foreground">2.0.0</span>
+                  <span className="font-medium text-foreground">2.1.0</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Último acesso</span>
@@ -413,8 +484,8 @@ export default function Configuracoes() {
                 Precisa de ajuda? Entre em contato com o suporte técnico.
               </p>
               
-              <Button variant="outline" className="w-full">
-                Abrir chamado
+              <Button variant="outline" className="w-full" asChild>
+                <a href="/suporte">Abrir Suporte</a>
               </Button>
             </div>
           </div>

@@ -50,6 +50,50 @@ export type Database = {
           },
         ]
       }
+      attendance_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          max_correcoes_mes: number
+          prazo_correcao_dias: number
+          tolerancia_entrada: number
+          tolerancia_saida: number
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          max_correcoes_mes?: number
+          prazo_correcao_dias?: number
+          tolerancia_entrada?: number
+          tolerancia_saida?: number
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          max_correcoes_mes?: number
+          prazo_correcao_dias?: number
+          tolerancia_entrada?: number
+          tolerancia_saida?: number
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_rules_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: true
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -727,6 +771,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          created_at: string
+          email_summary: boolean
+          id: string
+          presence_alerts: boolean
+          push_enabled: boolean
+          reminders: boolean
+          theme: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_summary?: boolean
+          id?: string
+          presence_alerts?: boolean
+          push_enabled?: boolean
+          reminders?: boolean
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_summary?: boolean
+          id?: string
+          presence_alerts?: boolean
+          push_enabled?: boolean
+          reminders?: boolean
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -742,6 +822,10 @@ export type Database = {
           _unidade_id?: string
         }
         Returns: string
+      }
+      can_view_full_email: {
+        Args: { _profile_id: string; _viewer_id: string }
+        Returns: boolean
       }
       cleanup_expired_nonces: { Args: never; Returns: undefined }
       get_admin_unit_ids: { Args: { _user_id: string }; Returns: string[] }
