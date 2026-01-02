@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +59,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
+import { PaginationControls } from '@/components/ui/pagination-controls';
+import { usePagination } from '@/hooks/usePagination';
 
 const cargoConfig: Record<AppRole, { label: string; color: string; icon: typeof Users }> = {
   professor: { label: 'Professor', color: 'bg-primary/10 text-primary', icon: GraduationCap },
@@ -143,14 +145,28 @@ export default function Usuarios() {
   const currentUnidadeId = currentProfile?.unidade_id || null;
 
   // Filtrar usuários baseado na role, categoria e busca
-  const filteredUsuarios = usuarios
+  const filteredUsuarios = useMemo(() => usuarios
     .filter((u) => isUserVisible(currentUserRole, u.role, currentUnidadeId, u.unidade_id))
     .filter((u) => categoryConfig[activeTab].roles.includes(u.role))
     .filter(
       (u) =>
         u.nome.toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase())
-    );
+    ), [usuarios, currentUserRole, currentUnidadeId, activeTab, search]);
+
+  // Paginação
+  const pagination = usePagination<typeof filteredUsuarios[0]>({
+    initialPage: 1,
+    initialPageSize: 20,
+    totalItems: filteredUsuarios.length,
+  });
+
+  const paginatedUsuarios = pagination.paginatedData(filteredUsuarios);
+
+  // Reset página quando mudar filtros
+  useEffect(() => {
+    pagination.resetPage();
+  }, [activeTab, search]);
 
   // Contagens por categoria (excluindo desenvolvedores e filtrando por visibilidade)
   const getCategoryCount = (category: UserCategory) => {
@@ -376,7 +392,7 @@ export default function Usuarios() {
                   <ScrollArea className="flex-1 h-[calc(100vh-400px)] min-h-[300px]">
                     {/* Mobile Card View */}
                     <div className="block lg:hidden p-4 space-y-3">
-                      {filteredUsuarios.map((usuario) => (
+                      {paginatedUsuarios.map((usuario) => (
                         <div
                           key={usuario.id}
                           className="bg-muted/30 rounded-lg p-4 border border-border/50"
@@ -463,7 +479,7 @@ export default function Usuarios() {
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredUsuarios.map((usuario) => (
+                          {paginatedUsuarios.map((usuario) => (
                             <tr
                               key={usuario.id}
                               className="border-b border-border/50 hover:bg-muted/30 transition-colors"
@@ -538,10 +554,19 @@ export default function Usuarios() {
                     </div>
                   </ScrollArea>
                   
-                  {/* Footer with count */}
-                  <div className="border-t border-border p-3 text-center text-sm text-muted-foreground bg-muted/30">
-                    Exibindo {filteredUsuarios.length} usuário{filteredUsuarios.length !== 1 ? 's' : ''}
-                  </div>
+                  {/* Pagination Controls */}
+                  <PaginationControls
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    pageSize={pagination.pageSize}
+                    totalItems={filteredUsuarios.length}
+                    hasNextPage={pagination.hasNextPage}
+                    hasPrevPage={pagination.hasPrevPage}
+                    onPageChange={pagination.goToPage}
+                    onPageSizeChange={pagination.setPageSize}
+                    pageSizeOptions={[10, 20, 50, 100]}
+                    className="border-t border-border px-4 bg-muted/30"
+                  />
                 </div>
               )}
             </TabsContent>
