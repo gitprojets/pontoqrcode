@@ -9,6 +9,7 @@ import { ThemeProvider } from "next-themes";
 import { lazy, Suspense } from "react";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
+import { GlobalErrorBoundary } from "@/components/error";
 
 // Eager load only the absolute minimum
 import Index from "./pages/Index";
@@ -63,72 +64,74 @@ const PageLoader = () => (
 );
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <PWAUpdatePrompt />
-          <OfflineIndicator />
-          <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/install" element={<Install />} />
-                <Route path="/setup" element={<Setup />} />
-                <Route path="/demo" element={<Demo />} />
-                <Route path="/demo/:role" element={<DemoView />} />
-                
-                {/* Common routes */}
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/qrcode" element={<ProtectedRoute allowedRoles={['professor', 'outro']}><QRCodePage /></ProtectedRoute>} />
-                <Route path="/registro" element={<ProtectedRoute><Registro /></ProtectedRoute>} />
-                <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
-                <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
-                <Route path="/justificativas" element={<ProtectedRoute><Justificativas /></ProtectedRoute>} />
-                
-                {/* Director routes - only director can read QR codes */}
-                <Route path="/leitor" element={<ProtectedRoute allowedRoles={['diretor', 'desenvolvedor']}><LeitorQRCode /></ProtectedRoute>} />
-                
-                {/* Registros do dia - admin can view daily records */}
-                <Route path="/registros-dia" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><RegistrosDia /></ProtectedRoute>} />
-                
-                {/* Escalas - coordenador, admin and developer */}
-                <Route path="/escalas" element={<ProtectedRoute allowedRoles={['coordenador', 'administrador', 'desenvolvedor']}><Escalas /></ProtectedRoute>} />
-                
-                {/* Calendar - director, admin and developer */}
-                <Route path="/calendario" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Calendario /></ProtectedRoute>} />
-                
-                {/* Funcionarios - viewing only for director, coordinator, secretary */}
-                <Route path="/funcionarios" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'secretario', 'administrador', 'desenvolvedor']}><Funcionarios /></ProtectedRoute>} />
-                
-                {/* Reports - filtered by unit for director, coordinator, secretary */}
-                <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'secretario', 'administrador', 'desenvolvedor']}><Relatorios /></ProtectedRoute>} />
-                
-                <Route path="/aprovacoes" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'administrador', 'desenvolvedor']}><Aprovacoes /></ProtectedRoute>} />
-                <Route path="/unidades" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Unidades /></ProtectedRoute>} />
-                
-                {/* Admin and Developer routes - director cannot add users */}
-                <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Usuarios /></ProtectedRoute>} />
-                <Route path="/dispositivos" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Dispositivos /></ProtectedRoute>} />
-                <Route path="/seguranca" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Seguranca /></ProtectedRoute>} />
-                
-                {/* Support routes */}
-                <Route path="/suporte" element={<ProtectedRoute allowedRoles={['professor', 'diretor', 'coordenador', 'secretario', 'administrador', 'outro']}><Suporte /></ProtectedRoute>} />
-                <Route path="/suporte-admin" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><SuporteAdmin /></ProtectedRoute>} />
-                <Route path="/seed-data" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><SeedData /></ProtectedRoute>} />
-                <Route path="/audit-logs" element={<ProtectedRoute allowedRoles={['desenvolvedor', 'administrador']}><AuditLogs /></ProtectedRoute>} />
-                
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+  <GlobalErrorBoundary>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <PWAUpdatePrompt />
+            <OfflineIndicator />
+            <BrowserRouter>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/install" element={<Install />} />
+                  <Route path="/setup" element={<Setup />} />
+                  <Route path="/demo" element={<Demo />} />
+                  <Route path="/demo/:role" element={<DemoView />} />
+                  
+                  {/* Common routes */}
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/qrcode" element={<ProtectedRoute allowedRoles={['professor', 'outro']}><QRCodePage /></ProtectedRoute>} />
+                  <Route path="/registro" element={<ProtectedRoute><Registro /></ProtectedRoute>} />
+                  <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
+                  <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+                  <Route path="/justificativas" element={<ProtectedRoute><Justificativas /></ProtectedRoute>} />
+                  
+                  {/* Director routes - only director can read QR codes */}
+                  <Route path="/leitor" element={<ProtectedRoute allowedRoles={['diretor', 'desenvolvedor']}><LeitorQRCode /></ProtectedRoute>} />
+                  
+                  {/* Registros do dia - admin can view daily records */}
+                  <Route path="/registros-dia" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><RegistrosDia /></ProtectedRoute>} />
+                  
+                  {/* Escalas - coordenador, admin and developer */}
+                  <Route path="/escalas" element={<ProtectedRoute allowedRoles={['coordenador', 'administrador', 'desenvolvedor']}><Escalas /></ProtectedRoute>} />
+                  
+                  {/* Calendar - director, admin and developer */}
+                  <Route path="/calendario" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Calendario /></ProtectedRoute>} />
+                  
+                  {/* Funcionarios - viewing only for director, coordinator, secretary */}
+                  <Route path="/funcionarios" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'secretario', 'administrador', 'desenvolvedor']}><Funcionarios /></ProtectedRoute>} />
+                  
+                  {/* Reports - filtered by unit for director, coordinator, secretary */}
+                  <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'secretario', 'administrador', 'desenvolvedor']}><Relatorios /></ProtectedRoute>} />
+                  
+                  <Route path="/aprovacoes" element={<ProtectedRoute allowedRoles={['diretor', 'coordenador', 'administrador', 'desenvolvedor']}><Aprovacoes /></ProtectedRoute>} />
+                  <Route path="/unidades" element={<ProtectedRoute allowedRoles={['diretor', 'administrador', 'desenvolvedor']}><Unidades /></ProtectedRoute>} />
+                  
+                  {/* Admin and Developer routes - director cannot add users */}
+                  <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Usuarios /></ProtectedRoute>} />
+                  <Route path="/dispositivos" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Dispositivos /></ProtectedRoute>} />
+                  <Route path="/seguranca" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Seguranca /></ProtectedRoute>} />
+                  
+                  {/* Support routes */}
+                  <Route path="/suporte" element={<ProtectedRoute allowedRoles={['professor', 'diretor', 'coordenador', 'secretario', 'administrador', 'outro']}><Suporte /></ProtectedRoute>} />
+                  <Route path="/suporte-admin" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><SuporteAdmin /></ProtectedRoute>} />
+                  <Route path="/seed-data" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><SeedData /></ProtectedRoute>} />
+                  <Route path="/audit-logs" element={<ProtectedRoute allowedRoles={['desenvolvedor', 'administrador']}><AuditLogs /></ProtectedRoute>} />
+                  
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </AuthProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  </GlobalErrorBoundary>
 );
 
 export default App;
