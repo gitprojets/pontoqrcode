@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { RefreshCw, Clock, Shield, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,9 @@ export function QRCodeGenerator() {
   const [expiresIn, setExpiresIn] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Ref para evitar updates após unmount
+  const isMountedRef = useRef(true);
 
   const generateQRCode = useCallback(async () => {
     if (!user) return;
@@ -25,6 +28,9 @@ export function QRCodeGenerator() {
         throw new Error(fnError.message);
       }
 
+      // Verificar se ainda está montado antes de atualizar estado
+      if (!isMountedRef.current) return;
+
       if (data?.token) {
         setQrData(data.token);
         setExpiresIn(data.expiresIn || 60);
@@ -33,15 +39,20 @@ export function QRCodeGenerator() {
       }
     } catch (err) {
       console.error('Error generating QR token:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao gerar QR Code');
-      // Do not fall back to insecure local generation - require secure JWT tokens
-      setQrData('');
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Erro ao gerar QR Code');
+        // Do not fall back to insecure local generation - require secure JWT tokens
+        setQrData('');
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [user, profile?.matricula]);
+  }, [user]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     generateQRCode();
     
     const interval = setInterval(() => {
@@ -54,7 +65,10 @@ export function QRCodeGenerator() {
       });
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(interval);
+    };
   }, [generateQRCode]);
 
   const getTimerColor = () => {
