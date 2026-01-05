@@ -20,15 +20,20 @@ import {
   EyeOff,
   Smartphone,
   CheckCircle,
+  RotateCcw,
+  BookOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { PushNotificationToggle } from '@/components/notifications/PushNotificationToggle';
+import { OnboardingWizard } from '@/components/onboarding';
 
 export default function Configuracoes() {
   const { profile, role, refreshProfile } = useAuth();
-  const { settings, isLoading: settingsLoading, updateSetting, isSaving: settingsSaving } = useUserSettings();
+  const { settings, isLoading: settingsLoading, updateSetting, updateSettings, isSaving: settingsSaving } = useUserSettings();
   const { rules, isLoading: rulesLoading, updateRules, isSaving: rulesSaving, canEdit: canEditRules } = useAttendanceRules();
+  
+  const [showOnboarding, setShowOnboarding] = useState(false);
   
   const isAdmin = role === 'administrador';
   const isDev = role === 'desenvolvedor';
@@ -469,8 +474,43 @@ export default function Configuracoes() {
               </div>
             </div>
 
-            {/* Help */}
+            {/* Onboarding */}
             <div className="card-elevated p-4 lg:p-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <BookOpen className="w-5 h-5 text-primary" />
+                </div>
+                <h2 className="text-lg font-display font-semibold text-foreground">
+                  Tour Guiado
+                </h2>
+              </div>
+              
+              <p className="text-sm text-muted-foreground mb-4">
+                {settings?.onboarding_completed 
+                  ? 'Você já completou o tour. Deseja revisar?'
+                  : 'Conheça as funcionalidades do sistema.'
+                }
+              </p>
+              
+              <Button 
+                variant="outline" 
+                className="w-full gap-2"
+                onClick={async () => {
+                  if (settings?.onboarding_completed) {
+                    await updateSettings({ onboarding_completed: false, onboarding_completed_at: null });
+                  }
+                  setShowOnboarding(true);
+                }}
+                disabled={settingsSaving}
+                data-testid="restart-onboarding-btn"
+              >
+                <RotateCcw className="w-4 h-4" />
+                {settings?.onboarding_completed ? 'Refazer Tour' : 'Iniciar Tour'}
+              </Button>
+            </div>
+
+            {/* Help */}
+            <div className="card-elevated p-4 lg:p-6 animate-slide-up" style={{ animationDelay: '150ms' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-secondary/10 rounded-lg">
                   <Settings className="w-5 h-5 text-secondary" />
@@ -490,6 +530,9 @@ export default function Configuracoes() {
             </div>
           </div>
         </div>
+        
+        {/* Onboarding Wizard Modal */}
+        <OnboardingWizard open={showOnboarding} onOpenChange={setShowOnboarding} />
       </div>
     </MainLayout>
   );
