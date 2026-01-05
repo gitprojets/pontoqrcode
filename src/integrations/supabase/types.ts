@@ -133,6 +133,44 @@ export type Database = {
         }
         Relationships: []
       }
+      dispositivo_api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dispositivo_id: string
+          encrypted_key: string
+          id: string
+          key_hint: string | null
+          rotated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dispositivo_id: string
+          encrypted_key: string
+          id?: string
+          key_hint?: string | null
+          rotated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dispositivo_id?: string
+          encrypted_key?: string
+          id?: string
+          key_hint?: string | null
+          rotated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispositivo_api_keys_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: true
+            referencedRelation: "dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispositivos: {
         Row: {
           api_key: string | null
@@ -815,7 +853,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      audit_logs_masked: {
+        Row: {
+          action: string | null
+          created_at: string | null
+          id: string | null
+          ip_address: string | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string | null
+          id?: string | null
+          ip_address?: string | null
+          new_data?: never
+          old_data?: never
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string | null
+          id?: string | null
+          ip_address?: string | null
+          new_data?: never
+          old_data?: never
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_create_user: {
@@ -835,6 +911,10 @@ export type Database = {
       }
       cleanup_expired_nonces: { Args: never; Returns: undefined }
       get_admin_unit_ids: { Args: { _user_id: string }; Returns: string[] }
+      get_decrypted_api_key: {
+        Args: { p_dispositivo_id: string }
+        Returns: string
+      }
       get_dispositivo_api_key: {
         Args: { dispositivo_id: string }
         Returns: string
@@ -877,6 +957,11 @@ export type Database = {
           _record_id?: string
           _table_name?: string
         }
+        Returns: string
+      }
+      mask_sensitive_data: { Args: { data: Json }; Returns: Json }
+      set_encrypted_api_key: {
+        Args: { p_api_key: string; p_dispositivo_id: string }
         Returns: string
       }
     }
