@@ -70,23 +70,40 @@ export function useDispositivos() {
 
   const createDispositivo = async (input: DispositivoInput) => {
     try {
-      // Generate a simple API key for the device
+      // Generate a secure API key for the device
       const api_key = crypto.randomUUID();
       
+      // Primeiro criar o dispositivo (sem api_key no campo direto - vai para tabela criptografada)
       const { data, error } = await supabase
         .from('dispositivos')
-        .insert({ ...input, api_key })
+        .insert({ ...input })
         .select()
         .single();
 
       if (error) throw error;
       
+      // Agora salvar a API key criptografada usando a função RPC
+      const { error: keyError } = await supabase.rpc('set_encrypted_api_key', {
+        p_dispositivo_id: data.id,
+        p_api_key: api_key
+      });
+      
+      if (keyError) {
+        console.warn('Não foi possível salvar API key criptografada:', keyError);
+        // Fallback: salvar no campo legado (se ainda existir)
+        await supabase
+          .from('dispositivos')
+          .update({ api_key })
+          .eq('id', data.id);
+      }
+      
       toast.success('Dispositivo criado com sucesso!');
       await fetchDispositivos();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('Erro ao criar dispositivo:', error);
-      toast.error('Erro ao criar dispositivo: ' + error.message);
+      toast.error('Erro ao criar dispositivo: ' + errorMessage);
       throw error;
     }
   };
@@ -102,9 +119,10 @@ export function useDispositivos() {
       
       toast.success('Dispositivo atualizado com sucesso!');
       await fetchDispositivos();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('Erro ao atualizar dispositivo:', error);
-      toast.error('Erro ao atualizar dispositivo: ' + error.message);
+      toast.error('Erro ao atualizar dispositivo: ' + errorMessage);
       throw error;
     }
   };
@@ -120,10 +138,26 @@ export function useDispositivos() {
       
       toast.success('Dispositivo excluído com sucesso!');
       await fetchDispositivos();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('Erro ao excluir dispositivo:', error);
-      toast.error('Erro ao excluir dispositivo: ' + error.message);
+      toast.error('Erro ao excluir dispositivo: ' + errorMessage);
       throw error;
+    }
+  };
+
+  // Função para obter API key descriptografada (apenas para desenvolvedores)
+  const getApiKey = async (dispositivoId: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.rpc('get_decrypted_api_key', {
+        p_dispositivo_id: dispositivoId
+      });
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao obter API key:', error);
+      return null;
     }
   };
 
@@ -150,5 +184,6 @@ export function useDispositivos() {
     createDispositivo,
     updateDispositivo,
     deleteDispositivo,
+    getApiKey,
   };
 }

@@ -853,45 +853,7 @@ export type Database = {
       }
     }
     Views: {
-      audit_logs_masked: {
-        Row: {
-          action: string | null
-          created_at: string | null
-          id: string | null
-          ip_address: string | null
-          new_data: Json | null
-          old_data: Json | null
-          record_id: string | null
-          table_name: string | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action?: string | null
-          created_at?: string | null
-          id?: string | null
-          ip_address?: string | null
-          new_data?: never
-          old_data?: never
-          record_id?: string | null
-          table_name?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action?: string | null
-          created_at?: string | null
-          id?: string | null
-          ip_address?: string | null
-          new_data?: never
-          old_data?: never
-          record_id?: string | null
-          table_name?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       admin_create_user: {
@@ -910,7 +872,31 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_nonces: { Args: never; Returns: undefined }
+      count_audit_logs: {
+        Args: { p_action_filter?: string; p_table_filter?: string }
+        Returns: number
+      }
       get_admin_unit_ids: { Args: { _user_id: string }; Returns: string[] }
+      get_audit_logs_masked: {
+        Args: {
+          p_action_filter?: string
+          p_limit?: number
+          p_offset?: number
+          p_table_filter?: string
+        }
+        Returns: {
+          action: string
+          created_at: string
+          id: string
+          ip_address: string
+          new_data: Json
+          old_data: Json
+          record_id: string
+          table_name: string
+          user_agent: string
+          user_id: string
+        }[]
+      }
       get_decrypted_api_key: {
         Args: { p_dispositivo_id: string }
         Returns: string
