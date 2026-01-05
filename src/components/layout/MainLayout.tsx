@@ -6,6 +6,7 @@ import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { OnboardingTrigger } from '@/components/onboarding';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -81,6 +82,9 @@ const MainLayout = memo(function MainLayout({ children }: MainLayoutProps) {
           {children}
         </div>
       </main>
+      
+      {/* Onboarding Wizard */}
+      <OnboardingTrigger />
     </div>
   );
 });
