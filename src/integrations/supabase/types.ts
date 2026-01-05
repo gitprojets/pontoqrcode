@@ -776,6 +776,8 @@ export type Database = {
           created_at: string
           email_summary: boolean
           id: string
+          onboarding_completed: boolean
+          onboarding_completed_at: string | null
           presence_alerts: boolean
           push_enabled: boolean
           reminders: boolean
@@ -787,6 +789,8 @@ export type Database = {
           created_at?: string
           email_summary?: boolean
           id?: string
+          onboarding_completed?: boolean
+          onboarding_completed_at?: string | null
           presence_alerts?: boolean
           push_enabled?: boolean
           reminders?: boolean
@@ -798,6 +802,8 @@ export type Database = {
           created_at?: string
           email_summary?: boolean
           id?: string
+          onboarding_completed?: boolean
+          onboarding_completed_at?: string | null
           presence_alerts?: boolean
           push_enabled?: boolean
           reminders?: boolean

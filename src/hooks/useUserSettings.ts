@@ -11,6 +11,8 @@ interface UserSettings {
   reminders: boolean;
   email_summary: boolean;
   theme: string;
+  onboarding_completed: boolean;
+  onboarding_completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +23,8 @@ const defaultSettings: Omit<UserSettings, 'id' | 'user_id' | 'created_at' | 'upd
   reminders: true,
   email_summary: false,
   theme: 'system',
+  onboarding_completed: false,
+  onboarding_completed_at: null,
 };
 
 export function useUserSettings() {
