@@ -41,50 +41,51 @@ export default function AuditLogs() {
   const [searchTerm, setSearchTerm] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const ITEMS_PER_PAGE = 50;
 
   const fetchLogs = async () => {
     setIsLoading(true);
     try {
-      let query = supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
+      // Usar a nova função RPC que aplica máscaras automaticamente
+      const { data, error } = await supabase.rpc('get_audit_logs_masked', {
+        p_limit: ITEMS_PER_PAGE,
+        p_offset: (page - 1) * ITEMS_PER_PAGE,
+        p_action_filter: actionFilter !== 'all' ? actionFilter : null,
+        p_table_filter: searchTerm || null
+      });
 
-      if (actionFilter !== 'all') {
-        query = query.eq('action', actionFilter);
-      }
-
-      if (searchTerm) {
-        query = query.or(`action.ilike.%${searchTerm}%,table_name.ilike.%${searchTerm}%`);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      // Fetch user names for the logs
-      if (data && data.length > 0) {
-        const userIds = [...new Set(data.filter(l => l.user_id).map(l => l.user_id))];
+      if (error) {
+        // Fallback para query direta se RPC não existir
+        console.error('RPC error, falling back to direct query:', error);
+        const { data: directData, error: directError } = await supabase
+          .from('audit_logs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
         
-        if (userIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, nome')
-            .in('id', userIds as string[]);
-
-          const profileMap = new Map(profiles?.map(p => [p.id, p.nome]) || []);
-          
-          const logsWithNames = data.map(log => ({
-            ...log,
-            user_name: log.user_id ? profileMap.get(log.user_id) || 'Usuário desconhecido' : 'Sistema'
-          }));
-
-          setLogs(logsWithNames);
+        if (directError) throw directError;
+        
+        if (directData && directData.length > 0) {
+          await enrichLogsWithUserNames(directData);
         } else {
-          setLogs(data.map(log => ({ ...log, user_name: 'Sistema' })));
+          setLogs([]);
         }
+        return;
+      }
+
+      // Obter contagem total
+      const { data: countData } = await supabase.rpc('count_audit_logs', {
+        p_action_filter: actionFilter !== 'all' ? actionFilter : null,
+        p_table_filter: searchTerm || null
+      });
+      
+      if (countData !== null) {
+        setTotalCount(Number(countData));
+      }
+
+      if (data && data.length > 0) {
+        await enrichLogsWithUserNames(data);
       } else {
         setLogs([]);
       }
@@ -92,6 +93,28 @@ export default function AuditLogs() {
       console.error('Error fetching audit logs:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const enrichLogsWithUserNames = async (data: AuditLog[]) => {
+    const userIds = [...new Set(data.filter(l => l.user_id).map(l => l.user_id))];
+    
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, nome')
+        .in('id', userIds as string[]);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p.nome]) || []);
+      
+      const logsWithNames = data.map(log => ({
+        ...log,
+        user_name: log.user_id ? profileMap.get(log.user_id) || 'Usuário desconhecido' : 'Sistema'
+      }));
+
+      setLogs(logsWithNames);
+    } else {
+      setLogs(data.map(log => ({ ...log, user_name: 'Sistema' })));
     }
   };
 
@@ -231,13 +254,13 @@ export default function AuditLogs() {
                   Anterior
                 </Button>
                 <span className="flex items-center px-4 text-sm text-muted-foreground">
-                  Página {page}
+                  Página {page} {totalCount > 0 && `de ${Math.ceil(totalCount / ITEMS_PER_PAGE)}`}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(p => p + 1)}
-                  disabled={logs.length < ITEMS_PER_PAGE}
+                  disabled={logs.length < ITEMS_PER_PAGE || page * ITEMS_PER_PAGE >= totalCount}
                 >
                   Próxima
                 </Button>
