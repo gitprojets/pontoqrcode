@@ -69,6 +69,13 @@ serve(async (req) => {
       throw new Error('Profile not found');
     }
 
+    // Limpar nonces expirados deste professor (manutenção automática)
+    await supabaseClient
+      .from('qr_nonces')
+      .delete()
+      .eq('professor_id', user.id)
+      .lt('expires_at', new Date().toISOString());
+
     // Generate unique nonce
     const nonce = crypto.randomUUID();
     const now = Date.now();

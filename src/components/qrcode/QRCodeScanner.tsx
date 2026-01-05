@@ -88,6 +88,7 @@ export function QRCodeScanner() {
   const [scanResult, setScanResult] = useState<ScanResult>({ status: 'idle', message: '' });
   const [history, setHistory] = useState<ScanHistory[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
   
@@ -95,6 +96,7 @@ export function QRCodeScanner() {
   const processingRef = useRef(false);
   const lastProcessedTokenRef = useRef<string | null>(null);
   const cooldownRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
   const processQRCode = useCallback(async (decodedText: string) => {
     // Synchronous check using ref to prevent race conditions
@@ -372,6 +374,8 @@ export function QRCodeScanner() {
   }, [profile, toast]);
 
   const startScanner = useCallback(async () => {
+    setCameraError(null);
+    
     try {
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode('qr-reader');
@@ -394,9 +398,22 @@ export function QRCodeScanner() {
       setScanResult({ status: 'idle', message: '' });
     } catch (error: unknown) {
       console.error('Scanner error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      // Identificar tipo de erro de câmera
+      let userMessage = 'Verifique as permissões de câmera do navegador.';
+      if (errorMessage.includes('Permission denied') || errorMessage.includes('NotAllowedError')) {
+        userMessage = 'Permissão de câmera negada. Clique no ícone de câmera na barra de endereço para permitir.';
+      } else if (errorMessage.includes('NotFoundError') || errorMessage.includes('DevicesNotFoundError')) {
+        userMessage = 'Nenhuma câmera encontrada no dispositivo.';
+      } else if (errorMessage.includes('NotReadableError') || errorMessage.includes('TrackStartError')) {
+        userMessage = 'A câmera está sendo usada por outro aplicativo.';
+      }
+      
+      setCameraError(userMessage);
       toast({
         title: 'Erro ao iniciar câmera',
-        description: 'Verifique as permissões de câmera do navegador.',
+        description: userMessage,
         variant: 'destructive',
       });
     }
@@ -406,11 +423,15 @@ export function QRCodeScanner() {
     if (scannerRef.current?.isScanning) {
       await scannerRef.current.stop();
       setIsScanning(false);
+      setCameraError(null);
     }
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     return () => {
+      isMountedRef.current = false;
       if (scannerRef.current?.isScanning) {
         scannerRef.current.stop();
       }
@@ -495,9 +516,18 @@ export function QRCodeScanner() {
           {!isScanning && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/90">
               <Camera className="w-16 h-16 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-center">
-                Clique em "Iniciar Leitura" para<br />ativar a câmera
-              </p>
+              {cameraError ? (
+                <div className="text-center px-4">
+                  <p className="text-destructive text-sm mb-2">{cameraError}</p>
+                  <p className="text-muted-foreground text-xs">
+                    Clique em "Iniciar Leitura" para tentar novamente
+                  </p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center">
+                  Clique em "Iniciar Leitura" para<br />ativar a câmera
+                </p>
+              )}
             </div>
           )}
           {isProcessing && (
@@ -593,3 +623,6 @@ export function QRCodeScanner() {
     </div>
   );
 }
+
+// Export default para lazy loading
+export default QRCodeScanner;
