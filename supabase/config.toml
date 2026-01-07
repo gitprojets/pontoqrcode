@@ -1,5 +1,8 @@
 project_id = "ygangoaqopfqagyzijrk"
 
+[functions.rotate-api-keys]
+verify_jwt = false
+
 [functions.get-public-stats]
 verify_jwt = false
 

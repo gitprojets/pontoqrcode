@@ -141,7 +141,10 @@ export type Database = {
           encrypted_key: string
           id: string
           key_hint: string | null
+          next_rotation_at: string | null
           rotated_at: string | null
+          rotation_interval_days: number | null
+          rotation_notification_sent: boolean | null
         }
         Insert: {
           created_at?: string
@@ -150,7 +153,10 @@ export type Database = {
           encrypted_key: string
           id?: string
           key_hint?: string | null
+          next_rotation_at?: string | null
           rotated_at?: string | null
+          rotation_interval_days?: number | null
+          rotation_notification_sent?: boolean | null
         }
         Update: {
           created_at?: string
@@ -159,7 +165,10 @@ export type Database = {
           encrypted_key?: string
           id?: string
           key_hint?: string | null
+          next_rotation_at?: string | null
           rotated_at?: string | null
+          rotation_interval_days?: number | null
+          rotation_notification_sent?: boolean | null
         }
         Relationships: [
           {
@@ -901,6 +910,16 @@ export type Database = {
         Args: { p_dispositivo_id: string }
         Returns: string
       }
+      get_devices_pending_rotation: {
+        Args: never
+        Returns: {
+          days_until_rotation: number
+          dispositivo_id: string
+          dispositivo_nome: string
+          next_rotation_at: string
+          unidade_id: string
+        }[]
+      }
       get_dispositivo_api_key: {
         Args: { dispositivo_id: string }
         Returns: string
@@ -945,7 +964,12 @@ export type Database = {
         }
         Returns: string
       }
+      mark_rotation_notification_sent: {
+        Args: { p_dispositivo_id: string }
+        Returns: undefined
+      }
       mask_sensitive_data: { Args: { data: Json }; Returns: Json }
+      rotate_api_key: { Args: { p_dispositivo_id: string }; Returns: string }
       set_encrypted_api_key: {
         Args: { p_api_key: string; p_dispositivo_id: string }
         Returns: string
