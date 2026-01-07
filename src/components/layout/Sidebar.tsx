@@ -92,7 +92,7 @@ const menuItems: Record<string, MenuItem[]> = {
     { icon: QrCode, label: 'Dispositivos', path: '/dispositivos' },
     { icon: Calendar, label: 'Calendário Global', path: '/calendario' },
     { icon: ClipboardList, label: 'Relatórios', path: '/relatorios' },
-    { icon: Shield, label: 'Segurança', path: '/seguranca' },
+    { icon: Shield, label: 'Dashboard Segurança', path: '/security-dashboard' },
     { icon: ScrollText, label: 'Logs de Auditoria', path: '/audit-logs' },
     { icon: Database, label: 'Seed de Dados', path: '/seed-data' },
     { icon: Headphones, label: 'Central de Suporte', path: '/suporte-admin' },
