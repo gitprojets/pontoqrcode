@@ -44,6 +44,7 @@ const Suporte = lazy(() => import("./pages/Suporte"));
 const SuporteAdmin = lazy(() => import("./pages/SuporteAdmin"));
 const SeedData = lazy(() => import("./pages/SeedData"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const RotationConfig = lazy(() => import("./pages/RotationConfig"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -118,6 +119,7 @@ const App = () => (
                   <Route path="/dispositivos" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Dispositivos /></ProtectedRoute>} />
                   <Route path="/seguranca" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Seguranca /></ProtectedRoute>} />
                   <Route path="/security-dashboard" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><SecurityDashboard /></ProtectedRoute>} />
+                  <Route path="/rotation-config" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><RotationConfig /></ProtectedRoute>} />
                   
                   {/* Support routes */}
                   <Route path="/suporte" element={<ProtectedRoute allowedRoles={['professor', 'diretor', 'coordenador', 'secretario', 'administrador', 'outro']}><Suporte /></ProtectedRoute>} />

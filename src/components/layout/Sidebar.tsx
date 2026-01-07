@@ -22,6 +22,7 @@ import {
   Download,
   ScrollText,
   Sparkles,
+  KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -93,6 +94,7 @@ const menuItems: Record<string, MenuItem[]> = {
     { icon: Calendar, label: 'Calendário Global', path: '/calendario' },
     { icon: ClipboardList, label: 'Relatórios', path: '/relatorios' },
     { icon: Shield, label: 'Dashboard Segurança', path: '/security-dashboard' },
+    { icon: KeyRound, label: 'Rotação de Chaves', path: '/rotation-config' },
     { icon: ScrollText, label: 'Logs de Auditoria', path: '/audit-logs' },
     { icon: Database, label: 'Seed de Dados', path: '/seed-data' },
     { icon: Headphones, label: 'Central de Suporte', path: '/suporte-admin' },
