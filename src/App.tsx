@@ -39,6 +39,7 @@ const Unidades = lazy(() => import("./pages/Unidades"));
 const Usuarios = lazy(() => import("./pages/Usuarios"));
 const Dispositivos = lazy(() => import("./pages/Dispositivos"));
 const Seguranca = lazy(() => import("./pages/Seguranca"));
+const SecurityDashboard = lazy(() => import("./pages/SecurityDashboard"));
 const Suporte = lazy(() => import("./pages/Suporte"));
 const SuporteAdmin = lazy(() => import("./pages/SuporteAdmin"));
 const SeedData = lazy(() => import("./pages/SeedData"));
@@ -116,6 +117,7 @@ const App = () => (
                   <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Usuarios /></ProtectedRoute>} />
                   <Route path="/dispositivos" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Dispositivos /></ProtectedRoute>} />
                   <Route path="/seguranca" element={<ProtectedRoute allowedRoles={['administrador', 'desenvolvedor']}><Seguranca /></ProtectedRoute>} />
+                  <Route path="/security-dashboard" element={<ProtectedRoute allowedRoles={['desenvolvedor']}><SecurityDashboard /></ProtectedRoute>} />
                   
                   {/* Support routes */}
                   <Route path="/suporte" element={<ProtectedRoute allowedRoles={['professor', 'diretor', 'coordenador', 'secretario', 'administrador', 'outro']}><Suporte /></ProtectedRoute>} />
