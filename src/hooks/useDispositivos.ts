@@ -161,6 +161,39 @@ export function useDispositivos() {
     }
   };
 
+  // Função para rotacionar API key (apenas para desenvolvedores)
+  const rotateApiKey = async (dispositivoId: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.rpc('rotate_api_key', {
+        p_dispositivo_id: dispositivoId
+      });
+      
+      if (error) throw error;
+      
+      toast.success('API Key rotacionada com sucesso!');
+      await fetchDispositivos();
+      return data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      console.error('Erro ao rotacionar API key:', error);
+      toast.error('Erro ao rotacionar API key: ' + errorMessage);
+      return null;
+    }
+  };
+
+  // Função para obter dispositivos pendentes de rotação
+  const getDevicesPendingRotation = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_devices_pending_rotation');
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao obter dispositivos pendentes:', error);
+      return [];
+    }
+  };
+
   useEffect(() => {
     fetchDispositivos();
     
@@ -185,5 +218,7 @@ export function useDispositivos() {
     updateDispositivo,
     deleteDispositivo,
     getApiKey,
+    rotateApiKey,
+    getDevicesPendingRotation,
   };
 }

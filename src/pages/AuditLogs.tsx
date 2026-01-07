@@ -9,8 +9,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Search, Shield, RefreshCw, User, Calendar, Database } from 'lucide-react';
+import { Search, Shield, RefreshCw, User, Calendar, Database, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface AuditLog {
   id: string;
@@ -37,17 +41,22 @@ const ACTION_COLORS: Record<string, string> = {
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [maskedLogs, setMaskedLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [showMasked, setShowMasked] = useState(false);
+  const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
+  const { role } = useAuth();
+  const isDeveloper = role === 'desenvolvedor';
   const ITEMS_PER_PAGE = 50;
 
   const fetchLogs = async () => {
     setIsLoading(true);
     try {
-      // Usar a nova função RPC que aplica máscaras automaticamente
+      // Fetch unmasked data (developers see everything, others get masked automatically)
       const { data, error } = await supabase.rpc('get_audit_logs_masked', {
         p_limit: ITEMS_PER_PAGE,
         p_offset: (page - 1) * ITEMS_PER_PAGE,
@@ -56,7 +65,6 @@ export default function AuditLogs() {
       });
 
       if (error) {
-        // Fallback para query direta se RPC não existir
         console.error('RPC error, falling back to direct query:', error);
         const { data: directData, error: directError } = await supabase
           .from('audit_logs')
@@ -67,14 +75,15 @@ export default function AuditLogs() {
         if (directError) throw directError;
         
         if (directData && directData.length > 0) {
-          await enrichLogsWithUserNames(directData);
+          await enrichLogsWithUserNames(directData, false);
         } else {
           setLogs([]);
+          setMaskedLogs([]);
         }
         return;
       }
 
-      // Obter contagem total
+      // Get count
       const { data: countData } = await supabase.rpc('count_audit_logs', {
         p_action_filter: actionFilter !== 'all' ? actionFilter : null,
         p_table_filter: searchTerm || null
@@ -85,9 +94,23 @@ export default function AuditLogs() {
       }
 
       if (data && data.length > 0) {
-        await enrichLogsWithUserNames(data);
+        // For developers, also generate masked version for comparison
+        if (isDeveloper) {
+          await enrichLogsWithUserNames(data, false);
+          // Generate masked version locally for comparison
+          const masked = data.map(log => ({
+            ...log,
+            old_data: maskSensitiveData(log.old_data),
+            new_data: maskSensitiveData(log.new_data),
+          }));
+          await enrichLogsWithUserNames(masked, true);
+        } else {
+          await enrichLogsWithUserNames(data, false);
+          setMaskedLogs([]);
+        }
       } else {
         setLogs([]);
+        setMaskedLogs([]);
       }
     } catch (error) {
       console.error('Error fetching audit logs:', error);
@@ -96,7 +119,45 @@ export default function AuditLogs() {
     }
   };
 
-  const enrichLogsWithUserNames = async (data: AuditLog[]) => {
+  // Local masking function for developer comparison view
+  const maskSensitiveData = (data: unknown): unknown => {
+    if (!data || typeof data !== 'object') return data;
+    
+    const sensitiveKeys = ['email', 'telefone', 'phone', 'password', 'senha', 'api_key', 'apikey', 'secret', 'token', 'matricula', 'cpf', 'rg', 'endereco', 'address', 'auth', 'p256dh', 'endpoint'];
+    const result = { ...(data as Record<string, unknown>) };
+    
+    for (const key of Object.keys(result)) {
+      if (sensitiveKeys.includes(key.toLowerCase())) {
+        const value = result[key];
+        if (typeof value === 'string' && value.length > 0) {
+          if (key === 'email' && value.includes('@')) {
+            result[key] = value.substring(0, 2) + '***@***.***';
+          } else if (['telefone', 'phone'].includes(key)) {
+            result[key] = '***-' + value.replace(/[^0-9]/g, '').slice(-4);
+          } else if (key === 'matricula') {
+            result[key] = '***' + value.slice(-3);
+          } else {
+            result[key] = '[MASKED]';
+          }
+        }
+      }
+    }
+    return result;
+  };
+
+  const toggleLogExpanded = (logId: string) => {
+    setExpandedLogs(prev => {
+      const next = new Set(prev);
+      if (next.has(logId)) {
+        next.delete(logId);
+      } else {
+        next.add(logId);
+      }
+      return next;
+    });
+  };
+
+  const enrichLogsWithUserNames = async (data: AuditLog[], isMasked: boolean) => {
     const userIds = [...new Set(data.filter(l => l.user_id).map(l => l.user_id))];
     
     if (userIds.length > 0) {
@@ -112,9 +173,18 @@ export default function AuditLogs() {
         user_name: log.user_id ? profileMap.get(log.user_id) || 'Usuário desconhecido' : 'Sistema'
       }));
 
-      setLogs(logsWithNames);
+      if (isMasked) {
+        setMaskedLogs(logsWithNames);
+      } else {
+        setLogs(logsWithNames);
+      }
     } else {
-      setLogs(data.map(log => ({ ...log, user_name: 'Sistema' })));
+      const logsWithSystem = data.map(log => ({ ...log, user_name: 'Sistema' }));
+      if (isMasked) {
+        setMaskedLogs(logsWithSystem);
+      } else {
+        setLogs(logsWithSystem);
+      }
     }
   };
 
@@ -153,29 +223,54 @@ export default function AuditLogs() {
             <CardTitle className="text-lg">Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por ação ou tabela..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por ação ou tabela..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={actionFilter} onValueChange={setActionFilter}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Filtrar por ação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as ações</SelectItem>
+                    {uniqueActions.map(action => (
+                      <SelectItem key={action} value={action}>
+                        {action.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Filtrar por ação" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as ações</SelectItem>
-                  {uniqueActions.map(action => (
-                    <SelectItem key={action} value={action}>
-                      {action.replace(/_/g, ' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              
+              {isDeveloper && (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center gap-2">
+                    {showMasked ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-primary" />}
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="mask-toggle" className="text-sm font-medium cursor-pointer">
+                      {showMasked ? 'Visualização Mascarada' : 'Visualização Completa'}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {showMasked 
+                        ? 'Dados sensíveis ocultos (como administradores veem)' 
+                        : 'Todos os dados visíveis (apenas desenvolvedores)'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="mask-toggle"
+                    checked={showMasked}
+                    onCheckedChange={setShowMasked}
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -199,46 +294,86 @@ export default function AuditLogs() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {logs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge 
-                              variant="outline" 
-                              className={ACTION_COLORS[log.action] || 'bg-gray-500/10 text-gray-600'}
-                            >
-                              {log.action.replace(/_/g, ' ')}
-                            </Badge>
-                            {log.table_name && (
-                              <Badge variant="secondary" className="flex items-center gap-1">
-                                <Database className="h-3 w-3" />
-                                {log.table_name}
-                              </Badge>
+                  {(showMasked && isDeveloper ? maskedLogs : logs).map((log) => {
+                    const isExpanded = expandedLogs.has(log.id);
+                    const hasData = log.old_data || log.new_data;
+                    
+                    return (
+                      <Collapsible key={log.id} open={isExpanded} onOpenChange={() => hasData && toggleLogExpanded(log.id)}>
+                        <div className="p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge 
+                                  variant="outline" 
+                                  className={ACTION_COLORS[log.action] || 'bg-gray-500/10 text-gray-600'}
+                                >
+                                  {log.action.replace(/_/g, ' ')}
+                                </Badge>
+                                {log.table_name && (
+                                  <Badge variant="secondary" className="flex items-center gap-1">
+                                    <Database className="h-3 w-3" />
+                                    {log.table_name}
+                                  </Badge>
+                                )}
+                                {showMasked && isDeveloper && (
+                                  <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+                                    <EyeOff className="h-3 w-3 mr-1" />
+                                    Mascarado
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3.5 w-3.5" />
+                                  {log.user_name}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3.5 w-3.5" />
+                                  {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+                                </span>
+                                {log.record_id && (
+                                  <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
+                                    ID: {log.record_id.slice(0, 8)}...
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {hasData && (
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm" className="shrink-0">
+                                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                </Button>
+                              </CollapsibleTrigger>
                             )}
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <User className="h-3.5 w-3.5" />
-                              {log.user_name}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3.5 w-3.5" />
-                              {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
-                            </span>
-                            {log.record_id && (
-                              <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
-                                ID: {log.record_id.slice(0, 8)}...
-                              </span>
+                          
+                          <CollapsibleContent>
+                            {hasData && (
+                              <div className="mt-4 pt-4 border-t space-y-3">
+                                {log.old_data && (
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">Dados Anteriores:</p>
+                                    <pre className="text-xs bg-red-500/5 border border-red-500/20 rounded p-2 overflow-x-auto">
+                                      {JSON.stringify(log.old_data, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                                {log.new_data && (
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">Dados Novos:</p>
+                                    <pre className="text-xs bg-green-500/5 border border-green-500/20 rounded p-2 overflow-x-auto">
+                                      {JSON.stringify(log.new_data, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
                             )}
-                          </div>
+                          </CollapsibleContent>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      </Collapsible>
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
