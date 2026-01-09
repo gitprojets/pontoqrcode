@@ -1,15 +1,18 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ThemedLogo } from '@/components/ThemedLogo';
 import { LoginStatSkeletonRow } from '@/components/ui/stat-skeleton';
 import { useCountAnimation } from '@/hooks/useCountAnimation';
 import { SparkleParticles } from '@/components/effects/SparkleParticles';
+
+const REMEMBER_ME_KEY = 'frequenciaqr_remember_email';
 
 interface AnimatedLoginStatProps {
   value: number;
@@ -46,17 +49,26 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState({ escolas: 0, usuarios: 0, leituras: 0 });
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [isStatsLoaded, setIsStatsLoaded] = useState(false);
   const navigate = useNavigate();
 
+  // Carregar email salvo se "Lembrar de mim" foi marcado anteriormente
+  useEffect(() => {
+    const savedEmail = localStorage.getItem(REMEMBER_ME_KEY);
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setIsStatsLoading(true);
-        // Usar edge function para buscar estatísticas públicas (bypassa RLS)
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-stats`,
           {
@@ -76,7 +88,6 @@ export default function Login() {
           });
         }
       } catch (error) {
-        // Silently fail - stats are not critical for login
         console.warn('Could not fetch login stats:', error);
       } finally {
         setIsStatsLoading(false);
@@ -108,6 +119,13 @@ export default function Login() {
       }
 
       if (data.user) {
+        // Salvar ou remover email baseado na opção "Lembrar de mim"
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_ME_KEY, email.trim());
+        } else {
+          localStorage.removeItem(REMEMBER_ME_KEY);
+        }
+        
         toast.success('Login realizado com sucesso!');
         navigate('/dashboard');
       }
@@ -298,7 +316,12 @@ export default function Login() {
 
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="rounded border-border" />
+                <Checkbox 
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  className="rounded"
+                />
                 <span className="text-muted-foreground">Lembrar de mim</span>
               </label>
               <button
