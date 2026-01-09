@@ -6,59 +6,58 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getTodayISO, getCurrentTime, getWeekStartISO, getDayOfWeek } from '@/lib/dateUtils';
-// Feedback utilities for haptic and audio feedback
-const playFeedback = (type: 'success' | 'warning' | 'error') => {
-  // Vibration feedback (if supported)
-  if ('vibrate' in navigator) {
-    const patterns = {
-      success: [100, 50, 100], // Two short vibrations
-      warning: [200, 100, 200], // Two medium vibrations
-      error: [400], // One long vibration
-    };
-    navigator.vibrate(patterns[type]);
-  }
+import { getAudioContext, triggerHapticFeedback } from '@/lib/audioFeedback';
 
-  // Audio feedback using Web Audio API
+// Feedback utilities using singleton AudioContext
+const playFeedback = (type: 'success' | 'warning' | 'error') => {
+  // Vibration feedback patterns
+  const vibrationPatterns = {
+    success: [100, 50, 100],
+    warning: [200, 100, 200],
+    error: [400],
+  };
+  triggerHapticFeedback(vibrationPatterns[type]);
+
+  // Audio feedback using singleton AudioContext
   try {
-    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    const ctx = getAudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
     
     oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    gainNode.connect(ctx.destination);
     
-    // Different tones for different feedback types
     const tones = {
-      success: { frequency: 880, duration: 0.15, type: 'sine' as OscillatorType }, // High happy beep
-      warning: { frequency: 440, duration: 0.3, type: 'triangle' as OscillatorType }, // Medium warning tone
-      error: { frequency: 220, duration: 0.4, type: 'square' as OscillatorType }, // Low error buzz
+      success: { frequency: 880, duration: 0.15, type: 'sine' as OscillatorType },
+      warning: { frequency: 440, duration: 0.3, type: 'triangle' as OscillatorType },
+      error: { frequency: 220, duration: 0.4, type: 'square' as OscillatorType },
     };
     
     const tone = tones[type];
     oscillator.type = tone.type;
-    oscillator.frequency.setValueAtTime(tone.frequency, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(tone.frequency, ctx.currentTime);
     
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + tone.duration);
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + tone.duration);
     
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + tone.duration);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + tone.duration);
     
     // For success, add a second higher note
     if (type === 'success') {
-      const oscillator2 = audioContext.createOscillator();
-      const gainNode2 = audioContext.createGain();
+      const oscillator2 = ctx.createOscillator();
+      const gainNode2 = ctx.createGain();
       oscillator2.connect(gainNode2);
-      gainNode2.connect(audioContext.destination);
+      gainNode2.connect(ctx.destination);
       oscillator2.type = 'sine';
-      oscillator2.frequency.setValueAtTime(1320, audioContext.currentTime + 0.15); // Higher note
-      gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
-      gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      oscillator2.start(audioContext.currentTime + 0.15);
-      oscillator2.stop(audioContext.currentTime + 0.3);
+      oscillator2.frequency.setValueAtTime(1320, ctx.currentTime + 0.15);
+      gainNode2.gain.setValueAtTime(0.3, ctx.currentTime + 0.15);
+      gainNode2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      oscillator2.start(ctx.currentTime + 0.15);
+      oscillator2.stop(ctx.currentTime + 0.3);
     }
-  } catch (e) {
-    console.log('Audio feedback not available:', e);
+  } catch {
+    // Audio feedback is non-critical
   }
 };
 
