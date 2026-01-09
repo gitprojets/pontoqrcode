@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
+import { getTodayISO, getCurrentTime } from '@/lib/dateUtils';
 export interface RegistroFrequencia {
   id: string;
   professor_id: string;
@@ -168,8 +168,8 @@ export function useRegistrosFrequencia(unidadeId?: string) {
   ) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const hoje = new Date().toISOString().split('T')[0];
-      const agora = new Date().toTimeString().split(' ')[0].substring(0, 5);
+      const hoje = getTodayISO();
+      const agora = getCurrentTime();
 
       const { data: existing } = await supabase
         .from('registros_frequencia')

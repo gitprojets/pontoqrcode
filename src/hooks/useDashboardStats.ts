@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { getTodayISO, getMonthStartISO, getDaysInCurrentMonth, calculateWorkingDays } from '@/lib/dateUtils';
 
 interface DashboardStats {
   // Professor stats
@@ -53,10 +54,8 @@ export function useDashboardStats() {
 
     try {
       setIsLoading(true);
-      const hoje = new Date().toISOString().split('T')[0];
-      const inicioMes = new Date();
-      inicioMes.setDate(1);
-      const inicioMesStr = inicioMes.toISOString().split('T')[0];
+      const hoje = getTodayISO();
+      const inicioMesStr = getMonthStartISO();
 
       if (role === 'professor') {
         const { data: registros } = await supabase
@@ -70,9 +69,8 @@ export function useDashboardStats() {
         const atrasos = registros?.filter(r => r.status === 'atrasado').length || 0;
         const faltas = registros?.filter(r => r.status === 'falta').length || 0;
 
-        const now = new Date();
-        const diasNoMes = now.getDate();
-        const diasLetivos = Math.round(diasNoMes * 5 / 7);
+        const diasNoMes = getDaysInCurrentMonth();
+        const diasLetivos = calculateWorkingDays(diasNoMes);
 
         if (isMountedRef.current) {
           setStats(prev => ({
@@ -97,8 +95,8 @@ export function useDashboardStats() {
           const presentes = new Set(registrosHojeRes.data?.map(r => r.professor_id)).size;
           const totalMes = registrosMesRes.data?.length || 1;
           const presentesMes = registrosMesRes.data?.filter(r => r.status === 'presente' || r.status === 'atrasado').length || 0;
-          const diasNoMes = new Date().getDate();
-          const diasLetivos = Math.round(diasNoMes * 5 / 7);
+          const diasNoMes = getDaysInCurrentMonth();
+          const diasLetivos = calculateWorkingDays(diasNoMes);
 
           if (isMountedRef.current) {
             setStats(prev => ({

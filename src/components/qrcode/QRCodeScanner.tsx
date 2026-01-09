@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { getTodayISO, getCurrentTime, getWeekStartISO, getDayOfWeek } from '@/lib/dateUtils';
 // Feedback utilities for haptic and audio feedback
 const playFeedback = (type: 'success' | 'warning' | 'error') => {
   // Vibration feedback (if supported)
@@ -258,14 +258,10 @@ export function QRCodeScanner() {
 
   const recordAttendance = useCallback(async (professor: { id: string; nome: string; matricula: string | null; foto?: string | null; unidade_id?: string | null }) => {
     const directorUnitId = profile?.unidade_id;
-    const hoje = new Date().toISOString().split('T')[0];
-    const agora = new Date().toTimeString().split(' ')[0].substring(0, 5);
-    const diaSemana = new Date().getDay();
-
-    // Find week start (Sunday)
-    const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    const semanaInicio = weekStart.toISOString().split('T')[0];
+    const hoje = getTodayISO();
+    const agora = getCurrentTime();
+    const diaSemana = getDayOfWeek();
+    const semanaInicio = getWeekStartISO();
 
     const { data: escala } = await supabase
       .from('escalas_trabalho')
